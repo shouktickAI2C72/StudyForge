@@ -1,5 +1,13 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+// Resolve the backend base URL. NEXT_PUBLIC_API_URL is baked in at build time
+// on Vercel; locally the 127.0.0.1 fallback above is used.
+function getApiBase(): string {
+  if (typeof window === 'undefined') return API_BASE;
+  const override = window.localStorage.getItem('studyforge_api_url');
+  return override || API_BASE;
+}
+
 interface RequestOptions {
   method?: string;
   body?: unknown;
@@ -17,7 +25,7 @@ async function request<T>(endpoint: string, opts: RequestOptions = {}): Promise<
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (body) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const res = await fetch(`${getApiBase()}${endpoint}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -214,7 +222,7 @@ export async function scanNotes(file: File): Promise<ScanResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${API_BASE}/scan-notes`, {
+  const res = await fetch(`${getApiBase()}/scan-notes`, {
     method: 'POST',
     body: formData,
   });

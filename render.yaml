@@ -1,0 +1,22 @@
+# Render blueprint — deploys the StudyForge FastAPI backend as a free web service.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: studyforge-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements-deploy.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: GOOGLE_CLIENT_ID
+        sync: false          # set in Render dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: STUDYFORGE_SECRET_KEY
+        generateValue: true  # Render generates a strong random value
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.9
