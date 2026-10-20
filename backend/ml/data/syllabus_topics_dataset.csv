@@ -1,0 +1,36 @@
+topic_id,topic_name,subtopic_count,topic_type,desc_word_count,effort_hours
+1,Basics of Artificial Neural Networks,4,theory,38,2.5
+2,Perceptron and XOR Problem,3,numerical,45,3.0
+3,Multilayer Perceptron (MLP) Architectures,5,theory,52,3.5
+4,Activation Functions Comparison,4,theory,35,2.0
+5,Backpropagation and Gradient Descent,6,numerical,68,5.5
+6,Weight Initialization (Xavier and He),3,theory,32,2.0
+7,Vanishing and Exploding Gradients,4,numerical,50,4.0
+8,Optimization Algorithms (SGD Adam RMSProp),5,numerical,58,4.5
+9,Regularization (Dropout and L2),4,theory,42,3.0
+10,Batch Normalization and LayerNorm,3,theory,40,2.5
+11,Convolutional Neural Networks Fundamentals,6,theory,65,4.0
+12,Kernels Stride Padding and Pooling,5,numerical,54,4.2
+13,CNN Architectures (LeNet AlexNet ResNet),7,lab-heavy,85,6.5
+14,UNet Image Segmentation,6,lab-heavy,75,6.0
+15,YOLO Real-time Object Detection,8,lab-heavy,92,7.5
+16,Recurrent Neural Networks (RNN) Basics,4,theory,44,3.0
+17,LSTM and GRU Gated Architectures,6,numerical,62,5.0
+18,Bidirectional LSTM for Sequence Analysis,5,lab-heavy,70,5.5
+19,Generative Adversarial Networks (GANs),7,lab-heavy,88,7.0
+20,Variational Autoencoders (VAEs),6,numerical,76,6.0
+21,Binary Search Trees and Traversals,4,numerical,48,3.2
+22,Graph Algorithms (Dijkstra and A*),6,numerical,66,5.2
+23,Dynamic Programming (Knapsack & LCS),7,numerical,72,6.0
+24,CPU Scheduling and Deadlock Detection,5,theory,55,3.8
+25,Virtual Memory and Paging Algorithms,6,numerical,60,4.5
+26,Database Normalization (1NF to BCNF),5,numerical,56,4.0
+27,SQL Query Optimization and Indexing,4,lab-heavy,48,3.5
+28,Subnetting and CIDR IP Addressing,5,numerical,50,4.0
+29,TCP Three-Way Handshake and Flow Control,4,theory,36,2.4
+30,Asymmetric Cryptography and RSA,5,numerical,58,4.8
+31,REST API Design and Microservices,5,lab-heavy,64,4.5
+32,TensorFlow and PyTorch Model Pipelines,7,lab-heavy,80,6.0
+33,Model Deployment with FastAPI and Docker,6,lab-heavy,74,5.5
+34,Compiler Syntax Analysis and ASTs,6,theory,62,4.5
+35,Operating System System Calls & Threads,4,theory,38,2.6

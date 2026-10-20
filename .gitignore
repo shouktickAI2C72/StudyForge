@@ -28,10 +28,6 @@ backend_server.log
 server.log
 frontend.log
 
-# ── Model artifacts (large binaries) ───────────────────
-backend/ml/weights/
-backend/ml/data/
-
 # ── OS / editor ────────────────────────────────────────
 .DS_Store
 Thumbs.db

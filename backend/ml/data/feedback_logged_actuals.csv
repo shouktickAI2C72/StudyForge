@@ -1,0 +1,16 @@
+topic_id,topic_name,subtopic_count,topic_type,desc_word_count,effort_hours
+100,Dynamic Programming Knapsack,7,numerical,72,7.2
+101,SQL Query Indexing Optimization,4,lab-heavy,48,2.9
+102,Virtual Memory Paging Algorithms,6,numerical,60,5.3
+103,TCP Handshake Flow Control,4,theory,36,2.1
+104,Deadlocks CPU Scheduling,5,theory,55,4.5
+105,Binary Search Trees AVL,4,numerical,48,3.0
+106,Graph Dijkstra Shortest Path,6,numerical,66,5.9
+107,Database Normalization BCNF,5,numerical,56,4.6
+108,Operating System System Calls,4,theory,38,2.4
+109,CNN Convolutions Pooling,7,lab-heavy,85,7.5
+110,Subnetting CIDR IP Addressing,5,numerical,50,3.6
+111,Asymmetric Cryptography RSA,5,numerical,58,5.4
+112,REST API FastAPI Docker,6,lab-heavy,74,6.1
+113,Activation Functions ReLU Tanh,4,theory,35,1.8
+114,Backpropagation Gradient Descent,6,numerical,68,6.4

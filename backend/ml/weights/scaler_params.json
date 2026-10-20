@@ -1,0 +1,16 @@
+{
+  "subtopic_mean": 5.142857074737549,
+  "subtopic_std": 1.2454006671905518,
+  "desc_mean": 58.228572845458984,
+  "desc_std": 15.6644926071167,
+  "topic_types": [
+    "theory",
+    "numerical",
+    "lab-heavy"
+  ],
+  "input_dim": 5,
+  "hidden_layers": [
+    16,
+    8
+  ]
+}
