@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "StudyForge",
+    "slug": "studyforge-mobile",
+    "version": "1.0.0",
+    "description": "A focused personal study-planning app for building honest effort estimates from your study material.",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080a0d",
+    "splash": {
+      "backgroundColor": "#080a0d"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "StudyForge needs camera access so you can photograph your notes to scan them.",
+        "NSPhotoLibraryUsageDescription": "StudyForge needs access to your photos so you can upload a picture of your notes."
+      }
+    },
+    "android": {},
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "StudyForge needs access to your photos so you can upload a picture of your notes.",
+          "cameraPermission": "StudyForge needs camera access so you can photograph your notes to scan them."
+        }
+      ]
+    ]
+  }
+}

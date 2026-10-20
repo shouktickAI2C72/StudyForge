@@ -1,0 +1,50 @@
+# ── Secrets & local config ─────────────────────────────
+.env
+*.env.local
+.env.production
+
+# ── Python ─────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / Next.js ─────────────────────────────────────
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Databases & logs ───────────────────────────────────
+*.db
+*.sqlite3
+*.log
+backend_server.log
+server.log
+frontend.log
+
+# ── Model artifacts (large binaries) ───────────────────
+backend/ml/weights/
+backend/ml/data/
+
+# ── OS / editor ────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# ── Claude Code local state ────────────────────────────
+.claude/settings.local.json
+
+# ── Mobile build artifacts & local backups ─────────────
+mobile/dist/
+mobile/.expo/
+.web-git-backup/
+
+# ── Never commit credential notes ──────────────────────
+GOOGLE_CLIENT_ID*.txt
