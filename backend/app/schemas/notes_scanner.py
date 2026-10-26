@@ -1,5 +1,7 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field, ConfigDict
+
+from .youtube import TopicVideo
 
 class ExtractedTopicItem(BaseModel):
     topic_name: str
@@ -10,6 +12,10 @@ class ExtractedTopicItem(BaseModel):
     formatted_time: str
     difficulty_tier: str
     confidence_score: float
+    lectures: List[TopicVideo] = Field(
+        default_factory=list,
+        description="YouTube lecture recommendations for this topic",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,5 +35,7 @@ class ScanNotesResponse(BaseModel):
     total_estimated_hours: float
     topics: List[ExtractedTopicItem]
     cnn_backbone_metadata: CNNBackboneMetadata
+    lectures_available: bool = True
+    lecture_message: str = ""
 
     model_config = ConfigDict(from_attributes=True)

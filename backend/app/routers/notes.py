@@ -67,10 +67,22 @@ async def scan_notes(
                 detail=f"Couldn't read this file. It may be corrupt or password-protected: {str(e)}",
             )
 
+    if not extracted_text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "We couldn't find any readable text in this file. If it's a photo or "
+                "scan, make sure the text is sharp and well-lit, or upload a PDF with "
+                "selectable text."
+            ),
+        )
+
     # 3. Parse topics + chain through the effort predictor
     try:
         result = notes_scanner_service.predict_from_text(extracted_text, filename=filename, method=method)
         return ScanNotesResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

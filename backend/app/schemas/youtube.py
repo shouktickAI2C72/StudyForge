@@ -7,6 +7,7 @@ class TopicVideo(BaseModel):
     channel_name: str = Field(..., description="YouTube channel name")
     thumbnail_url: str = Field(..., description="High/Medium resolution thumbnail URL")
     duration: str = Field(..., description="Human-readable duration (e.g. 14:52)")
+    watch_url: str = Field("", description="Direct YouTube watch link")
 
 class TopicVideosResponse(BaseModel):
     topic: str = Field(..., description="Topic queried")

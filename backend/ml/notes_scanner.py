@@ -1,19 +1,17 @@
-import os
 import re
 import sys
-from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
-from PIL import Image, ImageOps, ImageFilter
+from PIL import Image, ImageOps
 import io
 
 # Ensure UTF-8 encoding on Windows
 if sys.platform == 'win32':
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
     except Exception:
         pass
 
@@ -201,79 +199,36 @@ class NotesScannerModel:
 
     def extract_text_from_image(self, image_bytes: bytes, filename: str = "notes.png") -> str:
         """
-        Passes the image through the CNN-RNN pipeline and extracts the raw textual content.
-        Uses visual feature activations and content heuristics to extract syllabus topics.
+        Runs the image through the CNN preprocessing pipeline and returns REAL
+        OCR text (Tesseract). Returns '' when nothing readable is found — we
+        never invent topics from the filename or from sample data.
         """
         tensor, original_img = preprocess_image_to_tensor(image_bytes)
-        
+
         with torch.no_grad():
             features = self.model.cnn(tensor)
             # Ensure CNN forward pass executes successfully
             assert features.shape[1] == 512, "CNN backbone feature channel mismatch"
-            
-        # Try metadata / text extraction or fallback to recognized handwritten text
-        # If the image filename or embedded tags give clues, or if user uploads sample notes:
-        text = self._decode_visual_content(original_img, filename)
-        return text
 
-    def _decode_visual_content(self, img: Image.Image, filename: str) -> str:
-        """
-        Decodes recognized textual elements from the processed image.
-        Supports handwritten notes on data structures, algorithms, operating systems,
-        and machine learning syllabus layouts.
-        """
-        w, h = img.size
-        # Fallback text if user uploaded an unreadable or blank image
-        if w < 10 or h < 10:
-            return ""
-        return self._decode_visual_content_by_name(filename)
-
-    def _decode_visual_content_by_name(self, filename: str) -> str:
-        """
-        Filename-aware topic detection shared by the image pipeline and the
-        document extractor's fallback for scanned/image-only PDFs.
-        """
-        fn_lower = filename.lower()
-
-        # Context-aware recognition for uploaded syllabus and notes
-        if "os" in fn_lower or "operating" in fn_lower or "deadlock" in fn_lower:
-            return (
-                "Unit 3: Operating Systems & Process Synchronization\n"
-                "1. CPU Scheduling Algorithms (FCFS, Round Robin, Multi-level Queue) - 5 subtopics\n"
-                "2. Deadlock Characterization, Bankers Algorithm & Resource Allocation - 4 subtopics\n"
-                "3. Virtual Memory Management (Paging, Page Faults, LRU Replacement) - 6 subtopics\n"
-                "4. Inter-Process Communication & Semaphore Implementation - 4 subtopics"
-            )
-        elif any(kw in fn_lower for kw in ["ml", "cnn", "deep", "neural", "camera", "mobile", "photo", "capture", "scan"]):
-            return (
-                "Module: Deep Learning & Convolutional Neural Networks (CNN)\n"
-                "- Convolutional Neural Networks (Kernels, Stride, Padding & Pooling layers) - 7 subtopics\n"
-                "- Object Detection Architectures (YOLO, Faster R-CNN) - 6 subtopics\n"
-                "- Image Segmentation using UNet & Semantic Masking - 5 subtopics\n"
-                "- Transfer Learning & Fine-tuning Pretrained ResNet/VGG - 4 subtopics"
-            )
-        elif "dbms" in fn_lower or "sql" in fn_lower or "database" in fn_lower:
-            return (
-                "Database Systems Lecture Notes\n"
-                "1. Relational Database Normalization (1NF, 2NF, 3NF, BCNF) - 5 subtopics\n"
-                "2. SQL Query Execution & B-Tree Indexing Optimization - 5 subtopics\n"
-                "3. ACID Properties and Distributed Transaction Protocols - 4 subtopics"
-            )
-        else:
-            # Default extracted syllabus topics from standard handwritten/scanned student notes
-            return (
-                "Syllabus & Lecture Notes: Data Structures & Algorithms\n"
-                "1. Binary Search Trees & Balanced AVL Trees (Insertion, Deletion, Rotations) - 4 subtopics\n"
-                "2. Graph Algorithms: Dijkstra Shortest Path & Prim Minimum Spanning Tree - 6 subtopics\n"
-                "3. Dynamic Programming: 0/1 Knapsack & Longest Common Subsequence - 7 subtopics\n"
-                "4. Network Routing & Subnetting CIDR Addressing - 5 subtopics\n"
-                "5. Asymmetric Cryptography & RSA Encryption - 4 subtopics"
-            )
+        from document_extractor import ocr_image_bytes
+        return ocr_image_bytes(image_bytes)
 
 
 # ---------------------------------------------------------------------------
 # Syllabus Topic Parsing Step (Reused & Extended for Module 3)
 # ---------------------------------------------------------------------------
+MAX_TOPIC_NAME_CHARS = 60
+
+
+def _truncate_for_search(name: str) -> str:
+    """Collapse whitespace and trim long topic lines into concise, search-friendly names."""
+    name = " ".join(name.split())
+    if len(name) <= MAX_TOPIC_NAME_CHARS:
+        return name
+    cut = name[:MAX_TOPIC_NAME_CHARS].rsplit(" ", 1)[0]
+    return cut.rstrip(" ,;:-")
+
+
 def parse_syllabus_topics(raw_text: str) -> List[Dict[str, Any]]:
     """
     Parses raw extracted text from scanned notes / syllabus documents into
@@ -309,8 +264,8 @@ def parse_syllabus_topics(raw_text: str) -> List[Dict[str, Any]]:
             subtopic_count = max(3, min(8, len(parts) + 2))
             clean_name = clean_line
 
-        # Clean trailing symbols
-        clean_name = re.sub(r"[\:\-\–]+$", "", clean_name).strip()
+        # Clean trailing symbols and keep the name concise for YouTube search
+        clean_name = _truncate_for_search(re.sub(r"[\:\-\–]+$", "", clean_name).strip())
         if not clean_name:
             continue
 
@@ -332,15 +287,6 @@ def parse_syllabus_topics(raw_text: str) -> List[Dict[str, Any]]:
             "subtopic_count": subtopic_count,
             "topic_type": topic_type,
             "desc_word_count": desc_word_count
-        })
-
-    # Fallback default if no lines matched structured format
-    if not topics:
-        topics.append({
-            "topic_name": "General Syllabus Concepts",
-            "subtopic_count": 4,
-            "topic_type": "theory",
-            "desc_word_count": 45
         })
 
     return topics

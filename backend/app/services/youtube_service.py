@@ -47,6 +47,7 @@ def _fetch_from_youtube(topic: str, max_results: int = 5) -> List[Dict[str, Any]
     Call YouTube Data API v3 search.list + videos.list (for duration).
     Uses urllib so we don't need extra dependencies.
     """
+    import urllib.error
     import urllib.request
     import urllib.parse
     import json
@@ -126,6 +127,7 @@ def _fetch_from_youtube(topic: str, max_results: int = 5) -> List[Dict[str, Any]
                 or snippet.get("thumbnails", {}).get("default", {}).get("url", "")
             ),
             "duration": duration_map.get(vid, "?"),
+            "watch_url": f"https://www.youtube.com/watch?v={vid}",
         })
 
     return results
@@ -136,7 +138,9 @@ def get_topic_videos(topic: str, max_results: int = 5) -> Dict[str, Any]:
     Public API: returns videos for a topic, using cache if available.
     Returns { topic, videos, cached }.
     """
-    cache_key = topic.strip().lower()
+    # Cache by normalized topic AND requested count so a different max_results
+    # never gets served a stale, differently-sized result list.
+    cache_key = f"{topic.strip().lower()}|{max_results}"
 
     # Check cache
     if cache_key in _cache:

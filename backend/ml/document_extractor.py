@@ -4,27 +4,31 @@ Universal document text extractor for StudyForge's "Scan & Upload" feature.
 Turns an uploaded file of ANY common type into plain text that the syllabus
 topic parser can consume:
 
-  - .pdf              -> real text extraction via pypdf (page by page)
-  - .txt/.md/.csv...  -> decoded as text (utf-8, then latin-1 fallback)
-  - images            -> existing vision pipeline (notes_scanner_model)
-  - anything else      -> best-effort text decode, then image pipeline
+  - .pdf                -> real embedded text via pypdf; scanned/image-only
+                           PDFs are rendered page-by-page and read with OCR
+  - .docx/.pptx/.xlsx   -> real content from paragraphs / slides / cells
+  - .txt/.md/.csv/...   -> decoded as text (utf-8, then latin-1 fallback)
+  - images              -> real OCR via Tesseract
 
-If a PDF has no embedded text (e.g. a scanned photo saved as PDF) we fall back
-to the filename-aware topic detector so the user still gets a usable plan
-instead of an error — but we never invent numbers: every topic is still run
-through the real effort predictor downstream.
+Nothing is ever invented here: if a file yields no readable text we return an
+empty string (with the method used) and let the API layer tell the student
+honestly instead of fabricating topics from the filename.
 """
 from __future__ import annotations
 
 import io
-from pathlib import Path
 from typing import Tuple
 
-from notes_scanner import notes_scanner_model
-
 IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff"}
-TEXT_EXTS = {"txt", "md", "markdown", "csv", "tsv", "rtf", "log", "text"}
+TEXT_EXTS = {"txt", "md", "markdown", "csv", "tsv", "log", "text"}
 PDF_EXTS = {"pdf"}
+DOCX_EXTS = {"docx"}
+PPTX_EXTS = {"pptx"}
+XLSX_EXTS = {"xlsx", "xlsm"}
+
+# Scanned-PDF OCR limits: keep uploads responsive on the free tier
+MAX_OCR_PAGES = 20
+OCR_RENDER_DPI = 200
 
 
 def _ext(filename: str) -> str:
@@ -38,6 +42,25 @@ def _decode_text(data: bytes) -> str:
         except Exception:
             continue
     return data.decode("utf-8", errors="ignore")
+
+
+def ocr_image_bytes(data: bytes) -> str:
+    """
+    Real OCR via Tesseract. Returns '' when Tesseract is not installed,
+    the image can't be opened, or no readable text is found.
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        return ""
+    try:
+        image = Image.open(io.BytesIO(data))
+        return str(pytesseract.image_to_string(image)).strip()
+    except pytesseract.TesseractNotFoundError:
+        return ""
+    except Exception:
+        return ""
 
 
 def _extract_pdf(data: bytes) -> str:
@@ -54,10 +77,96 @@ def _extract_pdf(data: bytes) -> str:
     return "\n".join(c.strip() for c in chunks if c.strip()).strip()
 
 
+def _ocr_pdf_pages(data: bytes) -> str:
+    """Render scanned PDF pages to images and OCR them. '' if OCR is unavailable."""
+    try:
+        import pymupdf
+    except ImportError:
+        try:
+            import fitz as pymupdf  # type: ignore
+        except ImportError:
+            return ""
+
+    try:
+        doc = pymupdf.open(stream=data, filetype="pdf")
+    except Exception:
+        return ""
+
+    chunks = []
+    try:
+        for page in doc[:MAX_OCR_PAGES]:
+            try:
+                pix = page.get_pixmap(dpi=OCR_RENDER_DPI)
+                text = ocr_image_bytes(pix.tobytes("png"))
+                if text:
+                    chunks.append(text)
+            except Exception:
+                continue
+    finally:
+        doc.close()
+    return "\n".join(chunks).strip()
+
+
+def _extract_docx(data: bytes) -> str:
+    """Read real paragraph + table text from a Word document."""
+    from docx import Document
+
+    doc = Document(io.BytesIO(data))
+    chunks = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [c.text.strip() for c in row.cells if c.text.strip()]
+            if cells:
+                chunks.append(" | ".join(cells))
+    return "\n".join(chunks).strip()
+
+
+def _extract_pptx(data: bytes) -> str:
+    """Read real text from every PowerPoint slide (text frames + tables)."""
+    from pptx import Presentation
+
+    prs = Presentation(io.BytesIO(data))
+    chunks = []
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if getattr(shape, "has_text_frame", False):
+                text_frame = getattr(shape, "text_frame", None)
+                if text_frame is not None:
+                    text = text_frame.text.strip()
+                    if text:
+                        chunks.append(text)
+            if getattr(shape, "has_table", False):
+                table = getattr(shape, "table", None)
+                if table is not None:
+                    for row in table.rows:
+                        cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                        if cells:
+                            chunks.append(" | ".join(cells))
+    return "\n".join(chunks).strip()
+
+
+def _extract_xlsx(data: bytes) -> str:
+    """Read non-empty cell values from every worksheet."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    chunks = []
+    try:
+        for sheet in wb.worksheets:
+            for row in sheet.iter_rows(values_only=True):
+                cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
+                if cells:
+                    chunks.append(" | ".join(cells))
+    finally:
+        wb.close()
+    return "\n".join(chunks).strip()
+
+
 def extract_text(data: bytes, filename: str, content_type: str = "") -> Tuple[str, str]:
     """
     Returns (extracted_text, method) where method describes how we read the file.
-    Raises ValueError only when the file is empty/unreadable in every path.
+    An empty string means "no readable text found" — never fake content.
+    Raises ValueError only when the file is empty or a format we can't attempt.
     """
     if not data:
         raise ValueError("The uploaded file is empty.")
@@ -70,9 +179,19 @@ def extract_text(data: bytes, filename: str, content_type: str = "") -> Tuple[st
         text = _extract_pdf(data)
         if text:
             return text, "pdf-text"
-        # Image-only / scanned PDF: use the filename-aware topic detector.
-        fallback = notes_scanner_model._decode_visual_content_by_name(filename)  # type: ignore[attr-defined]
-        return fallback, "pdf-scanned-fallback"
+        # Image-only / scanned PDF: render pages and run real OCR.
+        text = _ocr_pdf_pages(data)
+        return (text, "pdf-ocr") if text else ("", "pdf-no-readable-text")
+
+    # --- Office documents ------------------------------------------------
+    if ext in DOCX_EXTS or "wordprocessingml" in ctype:
+        return _extract_docx(data), "docx-text"
+
+    if ext in PPTX_EXTS or "presentationml" in ctype:
+        return _extract_pptx(data), "pptx-text"
+
+    if ext in XLSX_EXTS or "spreadsheetml" in ctype:
+        return _extract_xlsx(data), "xlsx-text"
 
     # --- Plain text ------------------------------------------------------
     if ext in TEXT_EXTS or ctype.startswith("text/"):
@@ -83,17 +202,19 @@ def extract_text(data: bytes, filename: str, content_type: str = "") -> Tuple[st
 
     # --- Images ----------------------------------------------------------
     if ext in IMAGE_EXTS or ctype.startswith("image/"):
-        text = notes_scanner_model.extract_text_from_image(data, filename=filename)
-        return text, "image-vision"
+        return ocr_image_bytes(data), "image-ocr"
 
-    # --- Unknown: try text, then fall back to the image pipeline ---------
+    # --- Unknown extension: try text, then OCR, otherwise say so ---------
     maybe_text = _decode_text(data).strip()
     printable = sum(c.isprintable() or c.isspace() for c in maybe_text[:2000])
     if maybe_text and printable / max(1, len(maybe_text[:2000])) > 0.85:
         return maybe_text, "text-decode"
 
-    try:
-        text = notes_scanner_model.extract_text_from_image(data, filename=filename)
-        return text, "image-vision"
-    except Exception:
-        return notes_scanner_model._decode_visual_content_by_name(filename), "name-fallback"  # type: ignore[attr-defined]
+    text = ocr_image_bytes(data)
+    if text:
+        return text, "image-ocr"
+
+    raise ValueError(
+        "Couldn't find readable text in this file. Upload a PDF, Word document, "
+        "PowerPoint, Excel sheet, text file, or a clear image of your syllabus."
+    )

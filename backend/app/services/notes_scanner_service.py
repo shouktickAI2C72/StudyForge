@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 from typing import Dict, Any, List
@@ -8,43 +7,45 @@ ml_dir = Path(__file__).resolve().parent.parent.parent / "ml"
 if str(ml_dir) not in sys.path:
     sys.path.insert(0, str(ml_dir))
 
-from notes_scanner import notes_scanner_model, parse_syllabus_topics
+from notes_scanner import parse_syllabus_topics
 # REUSE EXISTING MODULE 1 PREDICTOR SERVICE (Do not duplicate prediction logic)
 from .predictor_service import predictor_service
+from .youtube_service import get_topic_videos
+
+# Sensible caps so one huge syllabus can't burn YouTube quota or flood the UI
+MAX_TOPICS_PER_SCAN = 15
+LECTURES_PER_TOPIC = 3
 
 
 class NotesScannerService:
     """
-    Module 3 Service: Coordinates CNN-based OCR text extraction from uploaded
-    notes/syllabus images and chains each detected topic through Module 1's
-    existing PyTorch MLP effort predictor, while generating targeted YouTube
-    video recommendations directly matched to the scanned content.
-    """
-    def __init__(self):
-        self.model = notes_scanner_model
+    Module 3 Service: parses real topics out of extracted syllabus text, chains
+    each through Module 1's existing PyTorch MLP effort predictor, and attaches
+    YouTube lecture recommendations matched to each detected topic.
 
-    def scan_and_predict(self, image_bytes: bytes, filename: str) -> Dict[str, Any]:
-        # 1. CNN Feature Extraction & OCR Text Transcription
-        extracted_text = self.model.extract_text_from_image(image_bytes, filename=filename)
-        return self.predict_from_text(extracted_text, filename=filename, method="image-vision")
+    YouTube failures never fail the scan — topics still come back with an empty
+    lecture list plus a clear availability note.
+    """
 
     def predict_from_text(self, extracted_text: str, filename: str, method: str = "text") -> Dict[str, Any]:
         """
-        Shared pipeline: parse topics out of already-extracted text and chain
-        each through Module 1's effort predictor. Used for images, PDFs and
-        plain-text uploads alike so every file type gets a real study estimate
-        and targeted YouTube video recommendations.
+        Shared pipeline for every upload type (PDF, Office docs, text, images).
+        Raises ValueError when no readable text was extracted so the API can
+        answer honestly instead of inventing topics.
         """
         if not extracted_text or not extracted_text.strip():
-            extracted_text = "General Study Topics (Unclear/Faint Upload)"
+            raise ValueError(
+                "No readable text was found in this file. Please upload a clearer "
+                "scan or a document with selectable text."
+            )
 
-        # 2. Topic Parsing
-        parsed_candidates = parse_syllabus_topics(extracted_text)
+        # Topic parsing (bounded so huge files stay responsive)
+        parsed_candidates = parse_syllabus_topics(extracted_text)[:MAX_TOPICS_PER_SCAN]
 
-
-        # 4. Chain directly through Module 1's existing predictor_service
         topic_predictions = []
         total_hours = 0.0
+        lectures_available = True
+        lecture_message = ""
 
         for candidate in parsed_candidates:
             # Call existing Module 1 predict() function
@@ -57,6 +58,17 @@ class NotesScannerService:
 
             total_hours += pred["predicted_hours"]
 
+            # Attach YouTube lectures for this topic; degrade gracefully.
+            lectures: List[Dict[str, Any]] = []
+            if lectures_available:
+                try:
+                    lectures = get_topic_videos(
+                        candidate["topic_name"], max_results=LECTURES_PER_TOPIC
+                    )["videos"]
+                except RuntimeError as e:
+                    lectures_available = False
+                    lecture_message = f"YouTube lectures are unavailable right now: {e}"
+
             topic_predictions.append({
                 "topic_name": pred["topic_name"],
                 "subtopic_count": pred["subtopic_count"],
@@ -66,15 +78,17 @@ class NotesScannerService:
                 "formatted_time": pred["formatted_time"],
                 "difficulty_tier": pred["difficulty_tier"],
                 "confidence_score": pred["confidence_score"],
-
+                "lectures": lectures,
             })
 
-        cnn_metadata = {
-            "model_architecture": "CRNN-TransferLearning (CNN Feature Extractor + Bidirectional LSTM)",
-            "kernel_details": "3x3 Kernels act as local visual stroke detectors (capturing ink edges, loops, and letter junctions).",
-            "stride_details": "Stride=1 in convolutional layers preserves spatial character resolution without premature compression.",
-            "padding_details": "Symmetric Padding=1 retains boundary text pixels along document margins.",
-            "pooling_details": "Asymmetric MaxPool2d (2x2 early, 2x1 deeper) collapses vertical height while preserving sequential horizontal width."
+        # User-friendly reader metadata — the frontend still renders this block,
+        # so keep the shape but describe what actually happens (no fake CNN/OCR talk).
+        reader_metadata = {
+            "model_architecture": "StudyForge Syllabus Reader (document text extraction + topic detection)",
+            "kernel_details": "Text is read directly from your document — PDF pages, Word paragraphs, slides, or spreadsheet cells.",
+            "stride_details": "Topics are detected from real headings, numbering, and bullet structure in your file.",
+            "padding_details": "Scanned images and image-only PDFs are read with OCR when it is available.",
+            "pooling_details": "No topics are invented — if no readable text is found, we tell you instead of guessing.",
         }
 
         return {
@@ -85,8 +99,9 @@ class NotesScannerService:
             "total_topics_detected": len(topic_predictions),
             "total_estimated_hours": round(total_hours, 2),
             "topics": topic_predictions,
-            "cnn_backbone_metadata": cnn_metadata,
-
+            "cnn_backbone_metadata": reader_metadata,
+            "lectures_available": lectures_available,
+            "lecture_message": lecture_message,
         }
 
 # Global singleton service
