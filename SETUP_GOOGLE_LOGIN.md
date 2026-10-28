@@ -19,7 +19,7 @@ gets a signed ID token and the backend verifies it. That means:
 | OAuth **client ID** (Web application) | ✅ Yes | you create it below |
 | **Client secret** | ❌ No | not used — never put one in the frontend |
 | **Redirect / callback URI** | ❌ No | there is no code-exchange step |
-| **Authorized JavaScript origins** | ✅ Yes | `http://localhost:3000` and `http://127.0.0.1:3000` |
+| **Authorized JavaScript origins** | ✅ Yes | `http://localhost:3000`, `http://127.0.0.1:3000`, and `https://studyforge-web-five.vercel.app` (production) |
 
 Origins reference the **frontend** (Next.js dev server on port `3000`), not the
 backend (`127.0.0.1:8000`). The backend never talks to Google's OAuth endpoints
@@ -32,9 +32,12 @@ directly — it only verifies the token against Google's public `tokeninfo` URL.
 3. Configure the **OAuth consent screen** → User type **External** → add your
    email as a test user.
 4. **Create credentials → OAuth client ID → Web application.**
-5. Under **Authorized JavaScript origins**, add both:
+5. Under **Authorized JavaScript origins**, add all of:
    - `http://localhost:3000`
    - `http://127.0.0.1:3000`
+   - `https://studyforge-web-five.vercel.app` ← production frontend (Google
+     refuses to issue a sign-in from any origin not on this list, so the
+     button only works on the live site once this entry exists)
 6. Copy the **Client ID** (looks like `1234567890-abc123.apps.googleusercontent.com`).
 
 ## 2. Give it to the backend
