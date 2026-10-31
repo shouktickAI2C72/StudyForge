@@ -5,34 +5,41 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
-import { scanNotes, type ScanResponse } from "@/lib/api";
-import { RelatedLectures } from "@/components/RelatedLectures";
+import {
+  uploadSyllabus,
+  getSampleSyllabus,
+  getTopicVideosById,
+  createPlan,
+  type SyllabusResponse,
+  type TopicVideosResponse,
+  type TopicVideo,
+  type PlanResponse,
+} from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
-const SAMPLE_SYLLABUS_TEXT = `CS 401: Advanced Operating Systems & Distributed Architecture
-Course Syllabus — Spring Semester
+const ACCEPTED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".md", ".heic", ".csv"];
 
-Module 1: Virtual Memory & Page Replacement Policies
-Paging mechanisms, multi-level page tables, Translation Lookaside Buffer (TLB) hit ratios, inverted page tables, and demand paging algorithms including LRU, FIFO, and Working Set model.
-
-Module 2: Process Synchronization & Concurrency Primitives
-Race conditions, critical section problem, Peterson's algorithm, hardware atomic test-and-set instructions, mutex locks, semaphores, classic synchronization problems (Dining Philosophers, Readers-Writers), and condition variables.
-
-Module 3: Deadlock Detection & Banker's Algorithm
-Necessary conditions for deadlock, resource allocation graphs, deadlock prevention vs avoidance, Banker's algorithm safe state verification, and detection and recovery strategies.
-
-Module 4: Distributed File Systems & Consensus Protocols
-Network File System (NFS) v4 architecture, cache consistency, Byzantine fault tolerance, Paxos consensus protocol basics, and Raft leader election mechanisms.`;
-
-const ACCEPTED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".md", ".csv"];
+function formatMinutes(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 export default function ScannerPage() {
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<ScanResponse | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [data, setData] = useState<SyllabusResponse | null>(null);
+  const [expandedTopicId, setExpandedTopicId] = useState<number | null>(null);
+  const [topicVideosCache, setTopicVideosCache] = useState<Record<number, TopicVideosResponse>>({});
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planData, setPlanData] = useState<PlanResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -53,27 +60,82 @@ export default function ScannerPage() {
     setLoading(true);
     setErrorMessage("");
     setData(null);
+    setPlanData(null);
+    setExpandedTopicId(null);
+    setTopicVideosCache({});
 
     try {
-      const res = await scanNotes(selectedFile);
+      const res = await uploadSyllabus(selectedFile, token);
       setData(res);
-      if (res.topics && res.topics.length > 0) {
-        setSelectedTopic(res.topics[0].topic_name);
-      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Scanning failed";
+      const msg = err instanceof Error ? err.message : "Syllabus upload failed";
       setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLoadSample = () => {
-    const blob = new Blob([SAMPLE_SYLLABUS_TEXT], { type: "text/plain" });
-    const sampleFile = new File([blob], "cs401_operating_systems_syllabus.txt", {
-      type: "text/plain",
-    });
-    processFile(sampleFile);
+  const handleLoadSample = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    setData(null);
+    setPlanData(null);
+    setFile(null);
+    setExpandedTopicId(null);
+    setTopicVideosCache({});
+
+    try {
+      const res = await getSampleSyllabus(token);
+      setData(res);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load sample syllabus";
+      setErrorMessage(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleLectures = async (topicId: number) => {
+    if (expandedTopicId === topicId) {
+      setExpandedTopicId(null);
+      setActiveVideoId(null);
+      return;
+    }
+    setExpandedTopicId(topicId);
+    setActiveVideoId(null);
+
+    if (!topicVideosCache[topicId]) {
+      try {
+        const res = await getTopicVideosById(topicId);
+        setTopicVideosCache((prev) => ({ ...prev, [topicId]: res }));
+      } catch {
+        setTopicVideosCache((prev) => ({
+          ...prev,
+          [topicId]: {
+            topic: "",
+            videos: [],
+            status: "unavailable",
+            cached: false,
+            fallback_search_url: "",
+          },
+        }));
+      }
+    }
+  };
+
+  const handleCreatePlan = async () => {
+    if (!data) return;
+    setPlanLoading(true);
+    setErrorMessage("");
+    try {
+      const res = await createPlan(data.syllabus_id, {}, token);
+      setPlanData(res);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Plan creation failed";
+      setErrorMessage(msg);
+    } finally {
+      setPlanLoading(false);
+    }
   };
 
   return (
@@ -100,15 +162,14 @@ export default function ScannerPage() {
               }}
             >
               <span className="dot-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
-              MODULE 3: SYLLABUS & NOTES SCANNER
+              SCAN SYLLABUS
             </div>
             <h1 className="heading-xl" style={{ marginBottom: "16px" }}>
-              Universal Document to Study Plan.
+              Upload your syllabus, get a study plan.
             </h1>
             <p className="text-body" style={{ fontSize: "17px" }}>
-              Upload any course document — typed syllabi (PDF), handwritten notes (JPG/PNG), or course
-              outlines (TXT/Markdown). Our document extractor segments candidate topics and pipes them
-              directly into Module 1&rsquo;s PyTorch MLP for instantaneous workload quantification.
+              Upload any course document — a typed PDF, a photo of your syllabus, or a text outline.
+              StudyForge reads it, identifies topics, estimates study time, and finds video lectures for each.
             </p>
           </div>
 
@@ -139,6 +200,15 @@ export default function ScannerPage() {
                 accept={ACCEPTED_EXTENSIONS.join(",")}
                 style={{ display: "none" }}
               />
+              {/* Camera input for phone capture */}
+              <input
+                type="file"
+                ref={cameraInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                style={{ display: "none" }}
+              />
 
               <div
                 className={dragOver ? "animate-pop" : ""}
@@ -163,7 +233,7 @@ export default function ScannerPage() {
                 {file ? file.name : "Drop your syllabus or notes here"}
               </h2>
               <p className="text-body" style={{ fontSize: "14px", marginBottom: "20px" }}>
-                Supports PDF, scanned images (PNG, JPG, WEBP), and plaintext outlines up to 15MB.
+                Supports PDF, photos (PNG, JPG, WEBP, HEIC), and text outlines up to 15 MB.
               </p>
 
               {/* Accepted format chips */}
@@ -203,6 +273,16 @@ export default function ScannerPage() {
                   className="btn btn-ghost btn-sm press"
                   onClick={(e) => {
                     e.stopPropagation();
+                    cameraInputRef.current?.click();
+                  }}
+                >
+                  📷 Take Photo
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm press"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleLoadSample();
                   }}
                 >
@@ -233,13 +313,12 @@ export default function ScannerPage() {
                 }}
               >
                 <span className="dot-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
-                EXTRACTING CANDIDATES & RUNNING PYTORCH INFERENCE...
+                READING DOCUMENT & ESTIMATING STUDY TIME...
               </div>
               <div className="progress-indeterminate" style={{ marginBottom: "16px" }} />
               <p className="text-small" style={{ marginBottom: "16px" }}>
-                Parsing document structure, identifying academic topic boundaries, and chaining each entry through the Effort Predictor MLP.
+                Extracting text, identifying topics, estimating study time, and finding video lectures for each topic.
               </p>
-              {/* Skeleton preview of the results to come */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div className="skeleton" style={{ height: "14px", width: "40%" }} />
                 <div className="skeleton" style={{ height: "14px", width: "85%" }} />
@@ -268,7 +347,7 @@ export default function ScannerPage() {
           {/* Results Display */}
           {data && (
             <div className="animate-in">
-              {/* Executive Summary Card */}
+              {/* Summary Card */}
               <div
                 className="animate-pop"
                 style={{
@@ -295,7 +374,7 @@ export default function ScannerPage() {
                       marginBottom: "6px",
                     }}
                   >
-                    EXTRACTOR STATUS: COMPLETED ({data.extraction_method.toUpperCase()})
+                    {data.is_sample ? "SAMPLE SYLLABUS" : "EXTRACTED SUCCESSFULLY"}
                   </div>
                   <div
                     style={{
@@ -305,14 +384,14 @@ export default function ScannerPage() {
                       wordBreak: "break-word",
                     }}
                   >
-                    {data.filename}
+                    {data.course_name}
                   </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "32px" }}>
                   <div>
                     <div style={{ fontSize: "11px", color: "var(--paper-sunken)", textTransform: "uppercase", marginBottom: "2px" }}>
-                      Topics Detected
+                      Topics
                     </div>
                     <div
                       style={{
@@ -322,12 +401,12 @@ export default function ScannerPage() {
                         color: "var(--amber)",
                       }}
                     >
-                      <AnimatedNumber value={data.total_topics_detected} duration={700} />
+                      <AnimatedNumber value={data.total_topics} duration={700} />
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: "11px", color: "var(--paper-sunken)", textTransform: "uppercase", marginBottom: "2px" }}>
-                      Cumulative Effort
+                      Estimated Study Time
                     </div>
                     <div
                       style={{
@@ -337,20 +416,37 @@ export default function ScannerPage() {
                         color: "var(--teal)",
                       }}
                     >
-                      <AnimatedNumber value={data.total_estimated_hours} format={(v) => `${v.toFixed(1)} hrs`} duration={900} />
+                      <AnimatedNumber value={data.total_estimated_minutes} format={(v) => formatMinutes(Math.round(v))} duration={900} />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Extracted Topics Table */}
+              {/* Warning if OCR was unreliable */}
+              {data.warning && (
+                <div
+                  style={{
+                    padding: "16px",
+                    background: "var(--paper-sunken)",
+                    border: "2px solid var(--amber)",
+                    borderRadius: "var(--radius-md)",
+                    marginBottom: "32px",
+                    fontWeight: 600,
+                    color: "var(--ink)",
+                  }}
+                >
+                  ⚠️ {data.warning}
+                </div>
+              )}
+
+              {/* Topics List */}
               <Reveal dir="up">
                 <div className="card" style={{ marginBottom: "40px" }}>
                   <div className="label" style={{ marginBottom: "8px" }}>
-                    Chained Topic Predictor Output
+                    Study Plan Topics
                   </div>
                   <h2 className="heading-md" style={{ marginBottom: "20px" }}>
-                    Parsed Modules & Estimated Study Durations
+                    Topics & Estimated Study Time
                   </h2>
 
                   <div style={{ overflowX: "auto" }}>
@@ -358,181 +454,273 @@ export default function ScannerPage() {
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>Module / Topic Name</th>
+                          <th>Topic</th>
                           <th>Category</th>
-                          <th>Subtopics</th>
-                          <th>Predicted Effort</th>
-                          <th>Difficulty Tier</th>
-                          <th>Confidence</th>
+                          <th>Estimated Study Time</th>
+                          <th>Difficulty</th>
                           <th>Lectures</th>
                         </tr>
                       </thead>
                       <tbody>
                         {data.topics.map((t, idx) => {
-                          const isSelected = selectedTopic === t.topic_name;
+                          const isExpanded = expandedTopicId === t.id;
                           return (
-                            <tr
-                              key={idx}
-                              onClick={() => setSelectedTopic(t.topic_name)}
-                              style={{
-                                cursor: "pointer",
-                                background: isSelected ? "var(--teal-subtle)" : undefined,
-                              }}
-                            >
-                              <td style={{ fontFamily: "var(--font-mono)", color: "var(--ink-muted)" }}>
-                                0{idx + 1}
-                              </td>
-                              <td style={{ fontWeight: 700 }}>{t.topic_name}</td>
-                              <td style={{ textTransform: "capitalize" }}>{t.topic_type}</td>
-                              <td>{t.subtopic_count}</td>
-                              <td
+                            <React.Fragment key={t.id}>
+                              <tr
+                                onClick={() => handleToggleLectures(t.id)}
                                 style={{
-                                  fontFamily: "var(--font-mono)",
-                                  fontWeight: 700,
-                                  color: "var(--teal)",
+                                  cursor: "pointer",
+                                  background: isExpanded ? "var(--teal-subtle)" : undefined,
                                 }}
                               >
-                                {t.formatted_time} ({t.predicted_hours.toFixed(2)}h)
-                              </td>
-                              <td>
-                                <span
-                                  className={`badge ${
-                                    t.difficulty_tier === "Deep Dive" || t.difficulty_tier === "Intensive"
-                                      ? "badge-accent"
-                                      : "badge-teal"
-                                  }`}
-                                >
-                                  {t.difficulty_tier}
-                                </span>
-                              </td>
-                              <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "110px" }}>
-                                  <div
-                                    style={{
-                                      flex: 1,
-                                      height: "6px",
-                                      background: "var(--paper-sunken)",
-                                      border: "1px solid var(--border)",
-                                      borderRadius: "3px",
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    <div
-                                      className="bar-fill"
-                                      style={{
-                                        width: `${t.confidence_score * 100}%`,
-                                        height: "100%",
-                                        background: "var(--teal)",
-                                      }}
-                                    />
-                                  </div>
-                                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-                                    {(t.confidence_score * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              </td>
-                              <td>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTopic(t.topic_name);
+                                <td style={{ fontFamily: "var(--font-mono)", color: "var(--ink-muted)" }}>
+                                  {String(idx + 1).padStart(2, "0")}
+                                </td>
+                                <td style={{ fontWeight: 700 }}>
+                                  {t.title}
+                                  {t.subtopics.length > 0 && (
+                                    <div style={{ fontSize: "12px", color: "var(--ink-secondary)", fontWeight: 400, marginTop: "4px" }}>
+                                      {t.subtopics.slice(0, 3).join(", ")}{t.subtopics.length > 3 ? "..." : ""}
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ textTransform: "capitalize" }}>{t.kind}</td>
+                                <td
+                                  style={{
+                                    fontFamily: "var(--font-mono)",
+                                    fontWeight: 700,
+                                    color: "var(--teal)",
                                   }}
-                                  className={`btn ${isSelected ? "btn-accent" : "btn-ghost"} btn-sm`}
-                                  style={{ fontSize: "11px", padding: "4px 8px" }}
                                 >
-                                  {isSelected ? "▶ Selected" : "Lectures"}
-                                </button>
-                              </td>
-                            </tr>
+                                  {formatMinutes(t.estimated_minutes)}
+                                </td>
+                                <td>
+                                  <span
+                                    className={`badge ${
+                                      t.difficulty === "hard"
+                                        ? "badge-accent"
+                                        : "badge-teal"
+                                    }`}
+                                    style={{ textTransform: "capitalize" }}
+                                  >
+                                    {t.difficulty}
+                                  </span>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleLectures(t.id);
+                                    }}
+                                    className={`btn ${isExpanded ? "btn-accent" : "btn-ghost"} btn-sm`}
+                                    style={{ fontSize: "11px", padding: "4px 8px" }}
+                                  >
+                                    {isExpanded ? "▼ Hide" : "▶ Lectures"}
+                                  </button>
+                                </td>
+                              </tr>
+                              {/* Expanded lectures row */}
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={6} style={{ background: "var(--paper-sunken)", padding: "16px" }}>
+                                    <LecturesExpander
+                                      videos={topicVideosCache[t.id]}
+                                      activeVideoId={activeVideoId}
+                                      setActiveVideoId={setActiveVideoId}
+                                    />
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
-
-                  {/* YouTube Related Lectures for Scanned Topic */}
-                  {selectedTopic && (
-                    <div style={{ marginTop: "24px" }}>
-                      <RelatedLectures topic={selectedTopic} />
-                    </div>
-                  )}
                 </div>
               </Reveal>
 
-              {/* CNN Backbone Architecture Details */}
+              {/* Create Weekly Plan */}
               <Reveal dir="up">
-                <div className="card" style={{ marginBottom: "40px" }}>
-                  <div className="label" style={{ marginBottom: "8px" }}>
-                    Vision & Sequence Transfer Learning
-                  </div>
-                  <h3 className="heading-sm" style={{ marginBottom: "16px" }}>
-                    CNN-RNN Document Extractor Specification
+                <div className="card" style={{ marginBottom: "40px", textAlign: "center", padding: "32px" }}>
+                  <h3 className="heading-sm" style={{ marginBottom: "12px" }}>
+                    Ready to build your weekly study plan?
                   </h3>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                      gap: "16px",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "12.5px",
-                    }}
+                  <p className="text-body" style={{ marginBottom: "20px", maxWidth: "500px", margin: "0 auto 20px" }}>
+                    StudyForge will spread topics across your study days, hardest first, with a light review slot on the last day.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-accent btn-lg"
+                    onClick={handleCreatePlan}
+                    disabled={planLoading}
                   >
-                    {[
-                      { title: "Architecture", value: data.cnn_backbone_metadata.model_architecture },
-                      { title: "Convolution Kernels", value: data.cnn_backbone_metadata.kernel_details },
-                      { title: "Pooling & Stride", value: data.cnn_backbone_metadata.pooling_details },
-                    ].map((spec) => (
-                      <div
-                        key={spec.title}
-                        className="card-interactive"
-                        style={{
-                          padding: "16px",
-                          background: "var(--paper-sunken)",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        <div style={{ fontWeight: 700, marginBottom: "4px" }}>{spec.title}</div>
-                        <div style={{ color: "var(--ink-secondary)" }}>{spec.value}</div>
-                      </div>
-                    ))}
-                  </div>
+                    {planLoading ? "Creating Plan..." : "Create Weekly Plan →"}
+                  </button>
                 </div>
               </Reveal>
 
-              {/* Raw Extracted Text Viewer */}
-              <Reveal dir="up">
-                <div className="card">
-                  <div className="label" style={{ marginBottom: "8px" }}>
-                    Raw Extracted Document Stream
+              {/* Plan Summary */}
+              {planData && (
+                <Reveal dir="up">
+                  <div className="card" style={{ marginBottom: "40px" }}>
+                    <div className="label" style={{ marginBottom: "8px" }}>
+                      Weekly Plan Created
+                    </div>
+                    <h2 className="heading-md" style={{ marginBottom: "20px" }}>
+                      Your Study Schedule
+                    </h2>
+                    <div style={{ overflowX: "auto" }}>
+                      <table className="table-refined">
+                        <thead>
+                          <tr>
+                            <th>Day</th>
+                            <th>Topic</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {planData.items.map((item) => (
+                            <tr key={item.id}>
+                              <td style={{ fontFamily: "var(--font-mono)" }}>
+                                {item.date} ({item.day_of_week})
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{item.topic_title || "Weekly Review"}</td>
+                              <td style={{ fontFamily: "var(--font-mono)" }}>{formatMinutes(item.minutes)}</td>
+                              <td>{item.done ? "✓ Done" : "Pending"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <pre
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "12px",
-                      lineHeight: "1.6",
-                      background: "var(--paper-sunken)",
-                      padding: "16px",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border)",
-                      maxHeight: "260px",
-                      overflowY: "auto",
-                      whiteSpace: "pre-wrap",
-                      margin: 0,
-                    }}
-                  >
-                    {data.extracted_raw_text}
-                  </pre>
-                </div>
-              </Reveal>
+                </Reveal>
+              )}
             </div>
           )}
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+/* ─── Lectures Expander ─── */
+function LecturesExpander({
+  videos,
+  activeVideoId,
+  setActiveVideoId,
+}: {
+  videos?: TopicVideosResponse;
+  activeVideoId: string | null;
+  setActiveVideoId: (id: string | null) => void;
+}) {
+  if (!videos) {
+    return <div className="text-small">Loading lectures...</div>;
+  }
+
+  if (videos.status === "unavailable") {
+    return (
+      <div style={{ padding: "12px", background: "var(--paper-raised)", borderRadius: "var(--radius-sm)" }}>
+        <p className="text-small" style={{ marginBottom: "8px" }}>
+          Video lectures are temporarily unavailable for this topic.
+        </p>
+        {videos.fallback_search_url && (
+          <a
+            href={videos.fallback_search_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: "12px" }}
+          >
+            Search YouTube directly →
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (!videos.videos || videos.videos.length === 0) {
+    return <div className="text-small">No video lectures found for this topic.</div>;
+  }
+
+  return (
+    <div>
+      {activeVideoId && (
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--teal)", fontWeight: 700 }}>
+              ● Now Playing
+            </span>
+            <button
+              onClick={() => setActiveVideoId(null)}
+              style={{ background: "none", border: "none", color: "var(--ink-muted)", fontSize: "12px", cursor: "pointer" }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div
+            style={{
+              position: "relative",
+              paddingBottom: "56.25%",
+              height: 0,
+              overflow: "hidden",
+              borderRadius: "var(--radius-md)",
+              border: "2px solid var(--ink)",
+              background: "#000",
+            }}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${activeVideoId}?autoplay=1`}
+              title="YouTube lecture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {videos.videos.map((vid: TopicVideo) => (
+          <div
+            key={vid.video_id}
+            onClick={() => setActiveVideoId(vid.video_id)}
+            className="card-interactive"
+            style={{
+              display: "flex",
+              gap: "14px",
+              padding: "10px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border)",
+              background: "var(--paper-raised)",
+              cursor: "pointer",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ position: "relative", width: "112px", height: "64px", flexShrink: 0, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "#111" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={vid.thumbnail_url} alt={vid.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+              {vid.duration && vid.duration !== "?" && (
+                <span style={{ position: "absolute", bottom: "3px", right: "4px", background: "rgba(0,0,0,0.85)", color: "#fff", fontFamily: "var(--font-mono)", fontSize: "9.5px", fontWeight: 700, padding: "1px 4px", borderRadius: "3px" }}>
+                  {vid.duration}
+                </span>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--ink)", lineHeight: "1.35", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {vid.title}
+              </div>
+              <div style={{ fontSize: "11.5px", color: "var(--ink-secondary)" }}>
+                {vid.channel_name}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

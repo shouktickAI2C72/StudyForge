@@ -34,9 +34,9 @@ export function Navigation() {
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/predictor", label: "Effort Predictor" },
-    { href: "/reoptimizer", label: "Schedule Re-Optimizer" },
-    { href: "/scanner", label: "Syllabus Scanner" },
+    { href: "/predictor", label: "Study Time" },
+    { href: "/reoptimizer", label: "Weekly Plan" },
+    { href: "/scanner", label: "Scan Syllabus" },
   ];
 
   return (
@@ -100,50 +100,7 @@ export function Navigation() {
             StudyForge
           </Link>
 
-          {/* Engine status indicator */}
-          <div
-            title={
-              backendOnline === true
-                ? "FastAPI ML Backend: Connected & Active"
-                : backendOnline === false
-                ? "FastAPI Backend Offline (Start on port 8000)"
-                : "Checking backend..."
-            }
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "3px 8px",
-              background: "var(--paper-sunken)",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--border)",
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: "var(--ink-secondary)",
-            }}
-          >
-            <span
-              className="dot-pulse"
-              style={{
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                background:
-                  backendOnline === true
-                    ? "var(--teal)"
-                    : backendOnline === false
-                    ? "var(--accent)"
-                    : "var(--amber)",
-                color:
-                  backendOnline === true
-                    ? "var(--teal)"
-                    : backendOnline === false
-                    ? "var(--accent)"
-                    : "var(--amber)",
-              }}
-            />
-            <span>{backendOnline ? "PyTorch MLP: Online" : "PyTorch MLP: Port 8000"}</span>
-          </div>
+
         </div>
 
         {/* Navigation links (desktop) */}

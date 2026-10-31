@@ -15,27 +15,27 @@ const formatHM = (v: number) => {
 };
 
 const marqueeItems = [
-  "PYTORCH MLP",
-  "ADAM OPTIMIZER",
-  "RMSprop TOURNAMENT",
-  "XAVIER / HE INIT",
-  "VAL MAE ±13 MIN",
-  "MINI-BATCH GD",
-  "ONNX EXPORT",
-  "FASTAPI INFERENCE",
-  "DOCUMENT OCR",
-  "DAG SHORTEST PATHS",
+  "SYLLABUS SCANNER",
+  "STUDY TIME ESTIMATES",
+  "VIDEO LECTURES",
+  "WEEKLY PLANS",
+  "MISSED-DAY REBALANCE",
+  "PROGRESS TRACKING",
+  "PDF & PHOTO UPLOAD",
+  "PERSONAL DASHBOARD",
+  "TOPIC BREAKDOWNS",
+  "NO FAKE DATA",
 ];
 
 export default function HomePage() {
   const [syllabusView, setSyllabusView] = useState<"raw" | "blueprint">("blueprint");
   const [mondaySkipped, setMondaySkipped] = useState(false);
 
-  // Live mini-predictor state on homepage
+  // Live mini-estimator state on homepage
   const [miniSubtopics, setMiniSubtopics] = useState(6);
   const [miniType, setMiniType] = useState<"theory" | "numerical" | "lab_heavy">("numerical");
 
-  // Calibrate an instant estimate based on model formula
+  // Rough instant estimate for the demo widget
   const baseHours =
     miniSubtopics * 0.45 +
     (miniType === "numerical" ? 0.8 : miniType === "lab_heavy" ? 0.6 : 0.3);
@@ -65,7 +65,7 @@ export default function HomePage() {
         >
           <div className="container">
             <div style={{ maxWidth: "860px", margin: "0 auto", textAlign: "center" }}>
-              {/* Engineering Tag */}
+              {/* Tag */}
               <div
                 className="animate-in"
                 style={{
@@ -83,7 +83,7 @@ export default function HomePage() {
                 }}
               >
                 <span className="dot-pulse" style={{ color: "var(--teal)", width: 7, height: 7, borderRadius: "50%", background: "var(--teal)" }} />
-                PYTORCH MULTILAYER PERCEPTRON • ADAPTIVE RE-OPTIMIZATION
+                UPLOAD SYLLABUS • ESTIMATE TIME • PLAN YOUR WEEK
               </div>
 
               {/* Main Headline — line-mask rise */}
@@ -95,7 +95,7 @@ export default function HomePage() {
                 </span>
                 <span className="line-mask">
                   <span style={{ "--line-delay": "0.18s" } as React.CSSProperties}>
-                    calibrated study blueprints.
+                    clear weekly study plans.
                   </span>
                 </span>
               </h1>
@@ -110,9 +110,9 @@ export default function HomePage() {
                   color: "var(--ink-secondary)",
                 }}
               >
-                University course outlines are dense bullet points with zero temporal calibration.
-                StudyForge uses trained neural networks to quantify study effort, dynamically rebalance missed
-                deadlines, and extract structured modules from syllabus documents.
+                Upload a PDF, photo, or text of your syllabus. StudyForge extracts the topics,
+                estimates the study time each one needs, finds matching video lectures, and builds
+                a weekly plan that adapts when life gets in the way.
               </p>
 
               {/* Call to Actions */}
@@ -127,20 +127,14 @@ export default function HomePage() {
                   marginBottom: "56px",
                 }}
               >
-                <Link href="/predictor" className="btn btn-accent btn-lg">
-                  Launch Effort Predictor →
+                <Link href="/scanner" className="btn btn-accent btn-lg">
+                  Scan Your Syllabus →
                 </Link>
                 <Link
                   href="/auth"
                   className="btn btn-ghost btn-lg"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
                 >
-                  <span>🤖</span>
-                  <span>Sign In with Volty</span>
+                  Sign In
                 </Link>
               </div>
             </div>
@@ -216,7 +210,7 @@ export default function HomePage() {
                           cursor: "pointer",
                         }}
                       >
-                        {mode === "raw" ? "Raw Syllabus" : "Calibrated Blueprint"}
+                        {mode === "raw" ? "Raw Syllabus" : "Study Plan"}
                       </button>
                     ))}
                   </div>
@@ -265,8 +259,8 @@ export default function HomePage() {
                           marginBottom: "16px",
                         }}
                       >
-                        <div className="label">PYTORCH CALIBRATED TIMELINE</div>
-                        <span className="badge badge-teal">VALIDATION ERROR: &plusmn;13 MIN</span>
+                        <div className="label">YOUR WEEK AT A GLANCE</div>
+                        <span className="badge badge-teal">ESTIMATED STUDY TIME</span>
                       </div>
 
                       <div
@@ -277,9 +271,9 @@ export default function HomePage() {
                         }}
                       >
                         {[
-                          { slot: "MODULE 1 (MON)", name: "BFS & DFS Traversals", time: "1h 35m", color: "var(--teal)", meta: "Foundational • 4 subtopics" },
-                          { slot: "MODULE 2 (WED)", name: "Dijkstra & Heaps", time: "3h 15m", color: "var(--accent)", meta: "Deep Dive • 7 subtopics" },
-                          { slot: "MODULE 3 (FRI)", name: "Bellman-Ford & DP", time: "2h 20m", color: "var(--teal)", meta: "Intensive • 5 subtopics" },
+                          { slot: "MONDAY", name: "BFS & DFS Traversals", time: "1h 35m", color: "var(--teal)", meta: "Easy • 4 subtopics" },
+                          { slot: "WEDNESDAY", name: "Dijkstra & Heaps", time: "3h 15m", color: "var(--accent)", meta: "Hard • 7 subtopics" },
+                          { slot: "FRIDAY", name: "Bellman-Ford & DP", time: "2h 20m", color: "var(--teal)", meta: "Medium • 5 subtopics" },
                         ].map((m, i) => (
                           <div
                             key={m.slot}
@@ -347,7 +341,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ─── Live Mini-Calculator Section ─── */}
+        {/* ─── Live Mini-Estimator Section ─── */}
         <section style={{ padding: "96px 0", borderBottom: "1px solid var(--border)" }}>
           <div className="container">
             <div
@@ -360,17 +354,18 @@ export default function HomePage() {
             >
               <Reveal dir="left">
                 <div className="label" style={{ marginBottom: "8px" }}>
-                  INTERACTIVE DEMO
+                  TRY IT INSTANTLY
                 </div>
                 <h2 className="heading-lg" style={{ marginBottom: "16px" }}>
-                  Test the PyTorch inference directly in your browser.
+                  See how study time is estimated.
                 </h2>
                 <p className="text-body" style={{ fontSize: "16px", marginBottom: "24px" }}>
-                  Adjust the parameters below to see how our standardized feature representations scale the
-                  expected cognitive workload. For the full experience with database logging, open Module 1.
+                  Adjust the parameters below to see how topic size and type affect the estimated
+                  study time. For the full experience — saved predictions and lecture links — open
+                  the Study Time page.
                 </p>
                 <Link href="/predictor" className="btn btn-primary">
-                  Open Full Predictor Interface →
+                  Open Study Time Estimator →
                 </Link>
               </Reveal>
 
@@ -385,7 +380,7 @@ export default function HomePage() {
                         marginBottom: "10px",
                       }}
                     >
-                      <label className="label">Subtopic Density</label>
+                      <label className="label">Subtopic Count</label>
                       <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                         <AnimatedNumber value={miniSubtopics} /> subtopics
                       </span>
@@ -403,7 +398,7 @@ export default function HomePage() {
 
                   <div style={{ marginBottom: "24px" }}>
                     <label className="label" style={{ display: "block", marginBottom: "8px" }}>
-                      Topic Category
+                      Topic Type
                     </label>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
                       {[
@@ -442,7 +437,7 @@ export default function HomePage() {
                     }}
                   >
                     <div className="label" style={{ marginBottom: "4px" }}>
-                      PREDICTED STUDY DURATION
+                      ESTIMATED STUDY TIME
                     </div>
                     <div
                       style={{
@@ -456,7 +451,7 @@ export default function HomePage() {
                       <AnimatedNumber value={baseHours} format={formatHM} />
                     </div>
                     <div style={{ fontSize: "12px", color: "var(--ink-muted)", marginTop: "4px" }}>
-                      Calibrated against academic benchmark dataset
+                      Quick estimate — upload a syllabus for the full breakdown
                     </div>
                   </div>
                 </div>
@@ -471,17 +466,17 @@ export default function HomePage() {
             <Reveal dir="up">
               <div className="stat-strip">
                 {[
-                  { value: "±13 min", label: "Validation MAE" },
-                  { value: "5", label: "Input Features" },
-                  { value: "3", label: "MLP Layers" },
-                  { value: "2", label: "Optimizer Tournaments" },
+                  { value: "PDF / Photo", label: "Any Syllabus Format" },
+                  { value: "Per Topic", label: "Time Estimates" },
+                  { value: "7 Days", label: "Weekly Plans" },
+                  { value: "1 Click", label: "Missed-Day Rebalance" },
                   { value: "0", label: "Third-party Trackers" },
                 ].map((s) => (
                   <div className="stat-cell" key={s.label}>
                     <div
                       style={{
                         fontFamily: "var(--font-mono)",
-                        fontSize: "1.6rem",
+                        fontSize: "1.4rem",
                         fontWeight: 800,
                         letterSpacing: "-0.02em",
                         marginBottom: "2px",
@@ -497,7 +492,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ─── 3 Machine Learning Modules Section ─── */}
+        {/* ─── Features Section ─── */}
         <section
           style={{
             padding: "96px 0",
@@ -509,14 +504,15 @@ export default function HomePage() {
             <Reveal dir="up">
               <div style={{ maxWidth: "700px", marginBottom: "56px" }}>
                 <div className="label" style={{ marginBottom: "8px" }}>
-                  CORE ARCHITECTURE
+                  WHAT STUDYFORGE DOES
                 </div>
                 <h2 className="heading-lg" style={{ marginBottom: "16px" }}>
-                  Engineered for genuine academic utility.
+                  Built for real study planning.
                 </h2>
                 <p className="text-body" style={{ fontSize: "16.5px" }}>
-                  No vague buzzwords or marketing fluff. StudyForge is built on rigorous ML architectures
-                  specifically tuned to syllabus modeling, loss optimization, and visual text extraction.
+                  No vague buzzwords. StudyForge reads your syllabus, breaks it into topics,
+                  and gives you an honest estimate of how long each one takes — plus the
+                  lectures to study them with.
                 </p>
               </div>
             </Reveal>
@@ -530,50 +526,34 @@ export default function HomePage() {
             >
               {[
                 {
-                  tag: "MODULE 01",
-                  color: "var(--accent)",
                   icon: "⚡",
-                  title: "PyTorch Effort Predictor",
-                  body: "Standardizes 5 input features (subtopic count, categorical one-hot flags for theory, numerical, and lab, plus syllabus word length) into a 3-layer MLP yielding a Mean Absolute Error of ~13 minutes.",
-                  spec: "Linear(5, 16) → ReLU → Linear(16, 8) → Linear(8, 1)",
+                  color: "var(--accent)",
+                  title: "Study Time Estimator",
+                  body: "Enter any topic — or upload your whole syllabus — and get an estimated study time with an Easy / Medium / Hard difficulty rating, backed by a trained model.",
                   href: "/predictor",
-                  cta: "Explore Effort Predictor →",
+                  cta: "Estimate Study Time",
                 },
                 {
-                  tag: "MODULE 02",
-                  color: "var(--teal)",
                   icon: "🔄",
-                  title: "Adaptive Schedule Re-Optimizer",
-                  body: "When students miss an academic day, the rebalancing algorithm incorporates simulated feedback via mini-batch gradient descent. It conducts Adam vs RMSprop convergence tournaments and re-allocates missed hours across the remaining week.",
-                  spec: "Adam vs RMSprop • Xavier vs He Variance Check",
+                  color: "var(--teal)",
+                  title: "Weekly Plan & Rebalance",
+                  body: "Topics are spread across your week, hardest first. Missed a day? Tell StudyForge which one and the remaining work is rebalanced automatically.",
                   href: "/reoptimizer",
-                  cta: "Explore Schedule Re-Optimizer →",
+                  cta: "See the Weekly Plan",
                 },
                 {
-                  tag: "MODULE 03",
-                  color: "var(--amber)",
                   icon: "📷",
-                  title: "Notes & Syllabus Scanner",
-                  body: "Accepts PDFs, plaintext syllabi, and photograph scans of handwritten notes. The document extractor segments candidate topics and pipes them directly through Module 1 for unified curriculum scheduling.",
-                  spec: "PDF Text Stream • OCR Fallback • Candidate Segmentation",
+                  color: "var(--amber)",
+                  title: "Scan Your Syllabus",
+                  body: "Upload a PDF, snap a photo, or paste text. StudyForge extracts the topics, estimates time for each, and finds matching video lectures.",
                   href: "/scanner",
-                  cta: "Explore Document Scanner →",
+                  cta: "Scan a Syllabus",
                 },
               ].map((m, i) => (
-                <Reveal key={m.tag} dir="up" delay={i * 120}>
+                <Reveal key={m.title} dir="up" delay={i * 120}>
                   <Link href={m.href} className="card card-interactive" style={{ display: "block", height: "100%", background: "var(--paper-raised)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                       <span className="icon-tile" style={{ background: "var(--paper-sunken)" }}>{m.icon}</span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          color: m.color,
-                        }}
-                      >
-                        {m.tag}
-                      </span>
                     </div>
                     <h3 className="heading-md" style={{ marginBottom: "12px" }}>
                       {m.title}
@@ -581,21 +561,8 @@ export default function HomePage() {
                     <p className="text-body" style={{ fontSize: "14px", marginBottom: "20px" }}>
                       {m.body}
                     </p>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "12px",
-                        background: "var(--paper-sunken)",
-                        padding: "10px",
-                        borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--border)",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      {m.spec}
-                    </div>
                     <span className="link-arrow" style={{ fontSize: "13.5px", color: m.color }}>
-                      {m.cta.replace(" →", "")}
+                      {m.cta}
                       <span className="arrow">→</span>
                     </span>
                   </Link>
@@ -611,14 +578,14 @@ export default function HomePage() {
             <Reveal dir="up">
               <div style={{ maxWidth: "760px", marginBottom: "40px" }}>
                 <div className="label" style={{ marginBottom: "8px" }}>
-                  DYNAMIC REBALANCING DEMO
+                  MISSED A DAY?
                 </div>
                 <h2 className="heading-lg" style={{ marginBottom: "16px" }}>
                   What happens when you miss Monday?
                 </h2>
                 <p className="text-body" style={{ fontSize: "16.5px" }}>
-                  Click the toggle below to witness how StudyForge absorbs a missed Monday of study without
-                  causing weekend burnout.
+                  Click the toggle below to see how StudyForge absorbs a missed Monday of study
+                  without overloading the rest of your week.
                 </p>
               </div>
             </Reveal>
@@ -739,7 +706,7 @@ export default function HomePage() {
           <div className="container">
             <Reveal dir="up">
               <h2 className="heading-lg" style={{ marginBottom: "20px" }}>
-                Experience StudyForge today.
+                Start planning with StudyForge today.
               </h2>
             </Reveal>
             <Reveal dir="up" delay={100}>
@@ -752,17 +719,17 @@ export default function HomePage() {
                   color: "var(--ink-secondary)",
                 }}
               >
-                Sign in with Volty the robot guardian, calibrate your first syllabus topic, and turn academic stress
-                into a clear, mathematically sound schedule.
+                Create an account, upload your first syllabus, and turn a dense course outline
+                into a clear, realistic weekly schedule.
               </p>
             </Reveal>
             <Reveal dir="up" delay={200}>
               <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
                 <Link href="/auth" className="btn btn-accent btn-lg">
-                  Enter The Forge with Volty →
+                  Create Your Account →
                 </Link>
                 <Link href="/dashboard" className="btn btn-ghost btn-lg">
-                  Open Command Dashboard
+                  Open Dashboard
                 </Link>
               </div>
             </Reveal>

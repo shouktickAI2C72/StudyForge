@@ -15,7 +15,6 @@ const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 export default function ReoptimizerPage() {
   const [selectedSkippedDay, setSelectedSkippedDay] = useState("MON");
-  const [epochs, setEpochs] = useState(120);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ReoptimizeResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,8 +32,7 @@ export default function ReoptimizerPage() {
     try {
       const res = await reoptimizeSchedule({
         skipped_day: selectedSkippedDay,
-        force_retrain: true,
-        epochs: epochs,
+        force_retrain: false,
       });
       setData(res);
     } catch (err: unknown) {
@@ -44,18 +42,6 @@ export default function ReoptimizerPage() {
       setLoading(false);
     }
   };
-
-  // Slider fill percentage for the epochs range input
-  const epochsFill = ((epochs - 20) / (300 - 20)) * 100;
-
-  // Loss bars: relative share of total loss so the two optimizers read at a glance
-  const adamLoss = data?.optimizer_comparison.adam_loss ?? 0;
-  const rmsLoss = data?.optimizer_comparison.rmsprop_loss ?? 0;
-  const adamShare = adamLoss + rmsLoss > 0 ? (adamLoss / (adamLoss + rmsLoss)) * 100 : 50;
-
-  const xavierVar = data?.init_comparison.xavier_loss_variance ?? 0;
-  const heVar = data?.init_comparison.he_loss_variance ?? 0;
-  const xavierShare = xavierVar + heVar > 0 ? (xavierVar / (xavierVar + heVar)) * 100 : 50;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -81,15 +67,14 @@ export default function ReoptimizerPage() {
               }}
             >
               <span className="dot-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal)", display: "inline-block" }} />
-              MODULE 2: ADAPTIVE SCHEDULE RE-OPTIMIZER
+              WEEKLY PLAN
             </div>
             <h1 className="heading-xl" style={{ marginBottom: "16px" }}>
-              Resilient Weekly Rebalancing.
+              Missed a day? Rebalance my week.
             </h1>
             <p className="text-body" style={{ fontSize: "17px" }}>
               Life happens — illnesses, family emergencies, or unexpected exam conflicts. When you miss a
-              study day, StudyForge doesn&rsquo;t let unfinished topics pile up into burnout. Our mini-batch
-              retraining algorithm rebalances your weekly workload while comparing Adam vs RMSprop convergence.
+              study day, StudyForge redistributes your workload across the remaining days so nothing piles up.
             </p>
           </div>
 
@@ -107,36 +92,23 @@ export default function ReoptimizerPage() {
                 }}
               >
                 <h2 className="heading-sm" style={{ marginBottom: 0 }}>
-                  Simulate Day Disruption
+                  Which day did you miss?
                 </h2>
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "11px",
-                    color: "var(--ink-muted)",
-                    background: "var(--paper-sunken)",
-                    padding: "4px 8px",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  gradient-descent rebalance
-                </span>
               </div>
 
               <form
                 onSubmit={handleReoptimize}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  display: "flex",
+                  flexWrap: "wrap",
                   gap: "24px",
                   alignItems: "end",
                 }}
               >
                 {/* Day Selection */}
-                <div>
+                <div style={{ flex: 1 }}>
                   <label className="label" style={{ display: "block", marginBottom: "8px" }}>
-                    Skipped / Interrupted Day
+                    Skipped Day
                   </label>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {DAYS.map((d) => {
@@ -169,49 +141,14 @@ export default function ReoptimizerPage() {
                   </div>
                 </div>
 
-                {/* Epochs Range */}
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <label className="label">Mini-Batch Epochs</label>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 700,
-                        fontSize: "13px",
-                        color: "var(--teal)",
-                      }}
-                    >
-                      {epochs} epochs
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    className="slider"
-                    min="20"
-                    max="300"
-                    step="10"
-                    value={epochs}
-                    onChange={(e) => setEpochs(parseInt(e.target.value))}
-                    style={{ width: "100%", cursor: "pointer", "--fill": `${epochsFill}%` } as React.CSSProperties}
-                  />
-                </div>
-
                 {/* Rebalance Button */}
                 <div>
                   <button
                     type="submit"
                     disabled={loading}
                     className="btn btn-accent btn-lg"
-                    style={{ width: "100%" }}
                   >
-                    {loading ? "Retraining & Rebalancing..." : `Re-Optimize (${selectedSkippedDay} Skipped) →`}
+                    {loading ? "Rebalancing..." : `Rebalance my week →`}
                   </button>
                 </div>
               </form>
@@ -239,12 +176,11 @@ export default function ReoptimizerPage() {
                 }}
               >
                 <span className="dot-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--teal)", display: "inline-block" }} />
-                RETRAINING SCHEDULE MODEL — RUNNING MINI-BATCH GRADIENT DESCENT...
+                REBALANCING YOUR WEEK...
               </div>
               <div className="progress-indeterminate" style={{ marginBottom: "12px" }} />
               <p className="text-small" style={{ marginBottom: 0 }}>
-                Zeroing the skipped day&rsquo;s load, redistributing surplus across remaining sessions, and
-                racing Adam against RMSprop to lock in the best convergence curve.
+                Redistributing the skipped day&rsquo;s study load across your remaining sessions.
               </p>
             </div>
           )}
@@ -268,7 +204,7 @@ export default function ReoptimizerPage() {
 
           {data && (
             <div className="animate-in">
-              {/* Executive Status Banner */}
+              {/* Status Banner */}
               <div
                 className="animate-pop"
                 style={{
@@ -295,7 +231,7 @@ export default function ReoptimizerPage() {
                       marginBottom: "6px",
                     }}
                   >
-                    SYSTEM REBALANCE EVENT #{data.id || "LIVE"}
+                    WEEK REBALANCED
                   </div>
                   <div
                     style={{
@@ -319,7 +255,7 @@ export default function ReoptimizerPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: "11px", color: "var(--paper-sunken)", textTransform: "uppercase", marginBottom: "2px" }}>
-                      Re-Optimized Total
+                      Rebalanced Total
                     </div>
                     <div
                       style={{
@@ -335,252 +271,14 @@ export default function ReoptimizerPage() {
                 </div>
               </div>
 
-              {/* Optimizer & Weight Init Competitions */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                  gap: "24px",
-                  marginBottom: "40px",
-                }}
-              >
-                {/* Adam vs RMSprop */}
-                <Reveal dir="up">
-                  <div className="card" style={{ height: "100%" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div className="label">Convergence Optimization</div>
-                      <span className="badge badge-teal">
-                        WINNER: {data.optimizer_comparison.winner}
-                      </span>
-                    </div>
-                    <h3 className="heading-sm" style={{ marginBottom: "12px" }}>
-                      Adam vs RMSprop Tournament
-                    </h3>
-                    <p className="text-body" style={{ fontSize: "13.5px", marginBottom: "20px" }}>
-                      {data.optimizer_comparison.summary}
-                    </p>
-
-                    {/* Loss race bars */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "18px" }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11.5px", marginBottom: "4px", fontFamily: "var(--font-mono)" }}>
-                          <span style={{ color: "var(--ink-secondary)" }}>ADAM</span>
-                          <span style={{ fontWeight: 700, color: data.optimizer_comparison.winner === "Adam" ? "var(--teal)" : "var(--ink)" }}>
-                            <AnimatedNumber value={adamLoss} format={(v) => v.toFixed(4)} duration={700} />
-                          </span>
-                        </div>
-                        <div style={{ height: "8px", background: "var(--paper-sunken)", borderRadius: "4px", border: "1px solid var(--border)", overflow: "hidden" }}>
-                          <div
-                            className="bar-fill"
-                            style={{
-                              width: `${adamShare}%`,
-                              height: "100%",
-                              background: data.optimizer_comparison.winner === "Adam" ? "var(--teal)" : "var(--ink-muted)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11.5px", marginBottom: "4px", fontFamily: "var(--font-mono)" }}>
-                          <span style={{ color: "var(--ink-secondary)" }}>RMSPROP</span>
-                          <span style={{ fontWeight: 700, color: data.optimizer_comparison.winner === "RMSprop" ? "var(--teal)" : "var(--ink)" }}>
-                            <AnimatedNumber value={rmsLoss} format={(v) => v.toFixed(4)} duration={700} />
-                          </span>
-                        </div>
-                        <div style={{ height: "8px", background: "var(--paper-sunken)", borderRadius: "4px", border: "1px solid var(--border)", overflow: "hidden" }}>
-                          <div
-                            className="bar-fill"
-                            style={{
-                              width: `${100 - adamShare}%`,
-                              height: "100%",
-                              background: data.optimizer_comparison.winner === "RMSprop" ? "var(--teal)" : "var(--ink-muted)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <div
-                        style={{
-                          padding: "12px",
-                          background: "var(--paper-sunken)",
-                          borderRadius: "var(--radius-sm)",
-                          border: `1px solid ${data.optimizer_comparison.winner === "Adam" ? "var(--teal)" : "var(--border)"}`,
-                        }}
-                      >
-                        <div className="text-small">Adam MSE Loss</div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "18px",
-                            fontWeight: 700,
-                            color:
-                              data.optimizer_comparison.winner === "Adam"
-                                ? "var(--teal)"
-                                : "var(--ink)",
-                          }}
-                        >
-                          {adamLoss.toFixed(4)}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          padding: "12px",
-                          background: "var(--paper-sunken)",
-                          borderRadius: "var(--radius-sm)",
-                          border: `1px solid ${data.optimizer_comparison.winner === "RMSprop" ? "var(--teal)" : "var(--border)"}`,
-                        }}
-                      >
-                        <div className="text-small">RMSprop MSE Loss</div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "18px",
-                            fontWeight: 700,
-                            color:
-                              data.optimizer_comparison.winner === "RMSprop"
-                                ? "var(--teal)"
-                                : "var(--ink)",
-                          }}
-                        >
-                          {rmsLoss.toFixed(4)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Reveal>
-
-                {/* Xavier vs He Initialization */}
-                <Reveal dir="up" delay={100}>
-                  <div className="card" style={{ height: "100%" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div className="label">Weight Initialization</div>
-                      <span className="badge badge-teal">
-                        WINNER: {data.init_comparison.winner}
-                      </span>
-                    </div>
-                    <h3 className="heading-sm" style={{ marginBottom: "12px" }}>
-                      Xavier Glorot vs Kaiming He
-                    </h3>
-                    <p className="text-body" style={{ fontSize: "13.5px", marginBottom: "20px" }}>
-                      {data.init_comparison.summary}
-                    </p>
-
-                    {/* Variance race bars */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "18px" }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11.5px", marginBottom: "4px", fontFamily: "var(--font-mono)" }}>
-                          <span style={{ color: "var(--ink-secondary)" }}>XAVIER</span>
-                          <span style={{ fontWeight: 700, color: data.init_comparison.winner.includes("Xavier") ? "var(--teal)" : "var(--ink)" }}>
-                            <AnimatedNumber value={xavierVar} format={(v) => v.toFixed(5)} duration={700} />
-                          </span>
-                        </div>
-                        <div style={{ height: "8px", background: "var(--paper-sunken)", borderRadius: "4px", border: "1px solid var(--border)", overflow: "hidden" }}>
-                          <div
-                            className="bar-fill"
-                            style={{
-                              width: `${xavierShare}%`,
-                              height: "100%",
-                              background: data.init_comparison.winner.includes("Xavier") ? "var(--amber)" : "var(--ink-muted)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11.5px", marginBottom: "4px", fontFamily: "var(--font-mono)" }}>
-                          <span style={{ color: "var(--ink-secondary)" }}>HE</span>
-                          <span style={{ fontWeight: 700, color: data.init_comparison.winner.includes("He") ? "var(--teal)" : "var(--ink)" }}>
-                            <AnimatedNumber value={heVar} format={(v) => v.toFixed(5)} duration={700} />
-                          </span>
-                        </div>
-                        <div style={{ height: "8px", background: "var(--paper-sunken)", borderRadius: "4px", border: "1px solid var(--border)", overflow: "hidden" }}>
-                          <div
-                            className="bar-fill"
-                            style={{
-                              width: `${100 - xavierShare}%`,
-                              height: "100%",
-                              background: data.init_comparison.winner.includes("He") ? "var(--amber)" : "var(--ink-muted)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <div
-                        style={{
-                          padding: "12px",
-                          background: "var(--paper-sunken)",
-                          borderRadius: "var(--radius-sm)",
-                          border: `1px solid ${data.init_comparison.winner.includes("Xavier") ? "var(--amber)" : "var(--border)"}`,
-                        }}
-                      >
-                        <div className="text-small">Xavier Variance</div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "18px",
-                            fontWeight: 700,
-                            color:
-                              data.init_comparison.winner.includes("Xavier")
-                                ? "var(--teal)"
-                                : "var(--ink)",
-                          }}
-                        >
-                          {xavierVar.toFixed(5)}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          padding: "12px",
-                          background: "var(--paper-sunken)",
-                          borderRadius: "var(--radius-sm)",
-                          border: `1px solid ${data.init_comparison.winner.includes("He") ? "var(--amber)" : "var(--border)"}`,
-                        }}
-                      >
-                        <div className="text-small">He Variance</div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "18px",
-                            fontWeight: 700,
-                            color:
-                              data.init_comparison.winner.includes("He")
-                                ? "var(--teal)"
-                                : "var(--ink)",
-                          }}
-                        >
-                          {heVar.toFixed(5)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Reveal>
-              </div>
-
               {/* Workload Redistribution Cards across the Week */}
               <div style={{ marginBottom: "48px" }}>
                 <Reveal dir="up">
                   <div className="label" style={{ marginBottom: "8px" }}>
-                    Workload Rebalancing Schedule
+                    Your Rebalanced Week
                   </div>
                   <h2 className="heading-md" style={{ marginBottom: "20px" }}>
-                    Surplus Distribution Across The Week
+                    How your study time was redistributed
                   </h2>
                 </Reveal>
 
@@ -631,9 +329,9 @@ export default function ReoptimizerPage() {
                                 color: "var(--accent)",
                               }}
                             >
-                              SKIPPED DAY
+                              MISSED
                               <div style={{ fontSize: "11px", fontWeight: 400, marginTop: "2px" }}>
-                                Work absorbed
+                                Work redistributed
                               </div>
                             </div>
                           ) : (
@@ -649,7 +347,7 @@ export default function ReoptimizerPage() {
                                 +<AnimatedNumber value={addedMins} duration={600} />m
                               </div>
                               <div style={{ fontSize: "11px", color: "var(--ink-muted)" }}>
-                                reallocated
+                                extra study time
                               </div>
                             </div>
                           )}
@@ -664,23 +362,23 @@ export default function ReoptimizerPage() {
               <Reveal dir="up">
                 <div className="card">
                   <div className="label" style={{ marginBottom: "8px" }}>
-                    Topic-Level Adjustment Records
+                    Topic Schedule
                   </div>
                   <h2 className="heading-md" style={{ marginBottom: "20px" }}>
-                    Granular Curriculum Timeline
+                    Updated study times per topic
                   </h2>
 
                   <div style={{ overflowX: "auto" }}>
                     <table className="table-refined">
                       <thead>
                         <tr>
-                          <th>Subject / Topic</th>
+                          <th>Topic</th>
                           <th>Day</th>
-                          <th>Category</th>
+                          <th>Type</th>
                           <th>Subtopics</th>
                           <th>Original Time</th>
-                          <th>Re-Optimized</th>
-                          <th>Delta</th>
+                          <th>Rebalanced</th>
+                          <th>Change</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -710,10 +408,10 @@ export default function ReoptimizerPage() {
                               <td style={{ textTransform: "capitalize" }}>{t.topic_type}</td>
                               <td>{t.subtopics} subtopics</td>
                               <td style={{ fontFamily: "var(--font-mono)" }}>
-                                {t.original_hours.toFixed(1)} hrs ({t.original_minutes}m)
+                                {t.original_hours.toFixed(1)} hrs
                               </td>
                               <td style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>
-                                {t.optimized_hours.toFixed(1)} hrs ({t.optimized_minutes}m)
+                                {t.optimized_hours.toFixed(1)} hrs
                               </td>
                               <td
                                 style={{

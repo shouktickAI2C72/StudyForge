@@ -2,6 +2,7 @@ import json
 import secrets
 import urllib.parse
 import urllib.request
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -64,15 +65,41 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
 
 
+_bearer_opt = HTTPBearer(auto_error=False)
+
+
+def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_opt),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if not credentials or not credentials.credentials:
+        return None
+    payload = decode_token(credentials.credentials)
+    if not payload or "sub" not in payload:
+        return None
+    return db.query(User).filter(User.id == payload["sub"]).first()
+
+
 @router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
 def me(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
+
+
+@router.get("/auth/providers", status_code=status.HTTP_200_OK)
+def auth_providers():
+    """Phase 5: Exposes available authentication providers for dynamic frontend rendering."""
+    return {
+        "google": GOOGLE_ENABLED,
+        "google_client_id": GOOGLE_CLIENT_ID if GOOGLE_ENABLED else None,
+        "email_password": True,
+    }
 
 
 @router.get("/auth/config", status_code=status.HTTP_200_OK)
 def auth_config():
     """Tells the frontend whether real Google sign-in is configured, and with which client ID."""
     return {"google_enabled": GOOGLE_ENABLED, "google_client_id": GOOGLE_CLIENT_ID}
+
 
 
 def _verify_google_id_token(credential: str) -> dict:

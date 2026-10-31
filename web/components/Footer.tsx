@@ -36,78 +36,68 @@ export function Footer() {
               StudyForge
             </div>
             <p className="text-body" style={{ fontSize: "14px", marginBottom: "16px" }}>
-              Intelligent syllabus-to-study-plan platform. Powered by a 3-layer PyTorch MLP,
-              mini-batch gradient descent schedule rebalancing, and transfer-learning document extraction.
+              Intelligent syllabus-to-study-plan platform. Turn dense course outlines into calibrated
+              study times, curated video lectures, and adaptive weekly schedules.
             </p>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--ink-muted)" }}>
-              TorchScript • ONNX • FastAPI • SQLite
+              Syllabus Intake • Smart Scheduling • YouTube Lectures
             </div>
           </Reveal>
 
-          {/* Column 2: Core ML Modules */}
+          {/* Column 2: Student Pages */}
           <Reveal dir="up" delay={80}>
             <div className="label" style={{ marginBottom: "16px" }}>
-              Machine Learning Modules
+              Student Flow
             </div>
             <ul style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <li>
-                <Link href="/predictor" className="footer-link">
-                  Module 1: Topic Effort Predictor
-                </Link>
-              </li>
-              <li>
-                <Link href="/reoptimizer" className="footer-link">
-                  Module 2: Schedule Re-Optimizer
+                <Link href="/dashboard" className="footer-link">
+                  Dashboard
                 </Link>
               </li>
               <li>
                 <Link href="/scanner" className="footer-link">
-                  Module 3: Syllabus & Notes Scanner
+                  Scan Syllabus
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="footer-link">
-                  Next Best Action Dashboard
+                <Link href="/predictor" className="footer-link">
+                  Study Time
+                </Link>
+              </li>
+              <li>
+                <Link href="/reoptimizer" className="footer-link">
+                  Weekly Plan
                 </Link>
               </li>
             </ul>
           </Reveal>
 
-          {/* Column 3: Technical Specifications */}
+          {/* Column 3: Evaluators & Architecture */}
           <Reveal dir="up" delay={160}>
             <div className="label" style={{ marginBottom: "16px" }}>
-              Model Architecture
+              For Evaluators & Teachers
             </div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "12.5px",
-                lineHeight: "1.7",
-                color: "var(--ink-secondary)",
-                background: "var(--paper-raised)",
-                padding: "16px",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border)",
-              }}
+            <p className="text-body" style={{ fontSize: "13.5px", marginBottom: "14px" }}>
+              Explore the machine learning architecture, validation loss benchmarks, and model export details.
+            </p>
+            <Link
+              href="/how-it-works"
+              className="btn btn-ghost btn-sm"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
-              <div>Input Vector: [x₁..x₅] (Dim 5)</div>
-              <div>Hidden L1: Linear(5, 16) + ReLU</div>
-              <div>Hidden L2: Linear(16, 8) + ReLU</div>
-              <div>Output: Linear(8, 1) -&gt; Hours</div>
-              <div style={{ marginTop: "8px", color: "var(--teal)" }}>
-                ✓ Val MAE: 0.2229 hrs (~13 min)
-              </div>
-            </div>
+              <span>🔬</span>
+              <span>How It Works (ML Architecture)</span>
+            </Link>
           </Reveal>
 
-          {/* Column 4: System Access */}
+          {/* Column 4: Account */}
           <Reveal dir="up" delay={240}>
             <div className="label" style={{ marginBottom: "16px" }}>
-              Authentication & Security
+              Account & Sessions
             </div>
             <p className="text-body" style={{ fontSize: "13.5px", marginBottom: "16px" }}>
-              Protected by Volty the Robot Guardian. Supports email + PBKDF2 hashed credentials and
-              direct Google Identity Services token verification.
+              Protected by Volty the Robot Guardian. Supports email and Google authentication.
             </p>
             <Link href="/auth" className="btn btn-primary btn-sm">
               Sign In / Switch Account

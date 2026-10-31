@@ -5,7 +5,7 @@ import { Providers } from "@/components/Providers";
 export const metadata: Metadata = {
   title: "StudyForge — Intelligent Syllabus-to-Study-Plan Platform",
   description:
-    "Turn syllabus content into personalized, adaptive study plans powered by PyTorch ML. Predict effort, re-optimize schedules, and scan handwritten notes.",
+    "Upload your syllabus, get accurate study time estimates per topic, find the best video lectures, and build a weekly plan that adapts when life happens.",
 };
 
 export default function RootLayout({

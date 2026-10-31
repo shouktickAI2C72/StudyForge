@@ -402,13 +402,6 @@ export default function AuthPage() {
     }
   };
 
-  // Demo shortcut for fast testing
-  const fillDemoAccount = () => {
-    setEmail("scholar@studyforge.edu");
-    setPassword("StudyForge2026!");
-    setName("Alex Mercer");
-    say("Demo credentials primed. Click LOG ME IN!");
-  };
 
   return (
     <div className={styles.authPage}>
@@ -649,7 +642,7 @@ export default function AuthPage() {
                 className={styles.googleBtn}
                 onClick={() => {
                   say(
-                    "Google OAuth needs a Client ID in .env. Click demo credentials or use email + password!"
+                    "Google sign-in is not configured on this server. Use email + password instead."
                   );
                 }}
               >
@@ -676,22 +669,6 @@ export default function AuthPage() {
             )}
           </div>
 
-          {/* Quick Demo Pre-fill for reviewers */}
-          <div style={{ textAlign: "center", marginTop: "16px" }}>
-            <button
-              type="button"
-              onClick={fillDemoAccount}
-              style={{
-                fontSize: "11px",
-                color: "#9a948a",
-                cursor: "pointer",
-                textDecoration: "underline",
-                letterSpacing: "0.5px",
-              }}
-            >
-              [One-click fill demo test credentials]
-            </button>
-          </div>
 
           <span className={`${styles.foot} ${styles.footL}`} aria-hidden="true"></span>
           <span className={`${styles.foot} ${styles.footR}`} aria-hidden="true"></span>

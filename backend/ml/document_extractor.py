@@ -19,7 +19,7 @@ from __future__ import annotations
 import io
 from typing import Tuple
 
-IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff"}
+IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "bmp", "gif", "tif", "tiff", "heic", "heif"}
 TEXT_EXTS = {"txt", "md", "markdown", "csv", "tsv", "log", "text"}
 PDF_EXTS = {"pdf"}
 DOCX_EXTS = {"docx"}
@@ -44,23 +44,58 @@ def _decode_text(data: bytes) -> str:
     return data.decode("utf-8", errors="ignore")
 
 
+def _preprocess_image(image):
+    """
+    Phone-camera syllabus photo pipeline:
+    1. Fix EXIF rotation (phones store orientation in metadata, not pixels)
+    2. Downscale longest edge to ~2000px (keeps OCR fast and memory-safe)
+    3. Grayscale + auto-contrast (sharpens faint pencil / low-light shots)
+    """
+    from PIL import ImageOps
+
+    # 1. EXIF rotation fix
+    image = ImageOps.exif_transpose(image)
+
+    # 2. Downscale to ~2000px on the longest edge
+    MAX_EDGE = 2000
+    w, h = image.size
+    if max(w, h) > MAX_EDGE:
+        scale = MAX_EDGE / max(w, h)
+        image = image.resize((int(w * scale), int(h * scale)))
+
+    # 3. Grayscale + auto-contrast
+    image = image.convert("L")
+    image = ImageOps.autocontrast(image, cutoff=2)
+
+    return image
+
+
 def ocr_image_bytes(data: bytes) -> str:
     """
     Real OCR via Tesseract. Returns '' when Tesseract is not installed,
     the image can't be opened, or no readable text is found.
+    Applies EXIF rotation fix, downscaling, grayscale and contrast boost
+    before running OCR so phone-camera photos work well.
     """
     try:
         import pytesseract
         from PIL import Image
+        try:
+            import pillow_heif
+            pillow_heif.register_heif_opener()
+        except ImportError:
+            pass
     except ImportError:
         return ""
     try:
         image = Image.open(io.BytesIO(data))
+        image = _preprocess_image(image)
         return str(pytesseract.image_to_string(image)).strip()
     except pytesseract.TesseractNotFoundError:
         return ""
     except Exception:
         return ""
+
 
 
 def _extract_pdf(data: bytes) -> str:
