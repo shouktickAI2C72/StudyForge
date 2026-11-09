@@ -40,6 +40,7 @@ export default function ScannerPage() {
   const [planLoading, setPlanLoading] = useState(false);
   const [planData, setPlanData] = useState<PlanResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -200,6 +201,15 @@ export default function ScannerPage() {
                 accept={ACCEPTED_EXTENSIONS.join(",")}
                 style={{ display: "none" }}
               />
+              {/* Camera input for device capture */}
+              <input
+                type="file"
+                ref={cameraInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                style={{ display: "none" }}
+              />
 
               <div
                 className={dragOver ? "animate-pop" : ""}
@@ -258,6 +268,16 @@ export default function ScannerPage() {
                   }}
                 >
                   Browse Files
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm press"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cameraInputRef.current?.click();
+                  }}
+                >
+                  📷 Take Photo
                 </button>
                 <button
                   type="button"
