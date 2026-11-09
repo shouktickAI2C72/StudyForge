@@ -95,9 +95,12 @@ export default function DashboardPage() {
               </h1>
             </div>
 
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
               <Link href="/scanner" className="btn btn-accent btn-sm">
                 Scan Syllabus
+              </Link>
+              <Link href="/reoptimizer" className="btn btn-ghost btn-sm">
+                Weekly Plan
               </Link>
               <Link href="/predictor" className="btn btn-ghost btn-sm">
                 Study Time
@@ -410,6 +413,9 @@ export default function DashboardPage() {
                     >
                       Rebalance my week
                     </button>
+                    <Link href="/reoptimizer" className="btn btn-ghost btn-sm">
+                      Weekly Simulator →
+                    </Link>
                   </div>
                   {rebalanceMsg && (
                     <div

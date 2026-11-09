@@ -92,7 +92,7 @@ export default function PredictorPage() {
       setCurrentResult(res);
       loadHistory();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Inference request failed";
+      const msg = err instanceof Error ? err.message : "Unable to estimate study time. Please try again.";
       setErrorMessage(msg);
     } finally {
       setLoading(false);
@@ -143,7 +143,7 @@ export default function PredictorPage() {
                     className={`btn btn-sm press ${topicName === preset.topic_name ? "btn-primary" : "btn-ghost"}`}
                     style={{ fontSize: "13px", background: topicName === preset.topic_name ? "var(--ink)" : "var(--paper-raised)" }}
                   >
-                    {preset.topic_name.split("&")[0].trim()}
+                    {preset.topic_name.split("&")[0].trim()} • {preset.topic_type === "numerical" ? "Math/CS" : preset.topic_type === "theory" ? "Theory" : "Lab"}
                   </button>
                 ))}
               </div>
@@ -384,14 +384,37 @@ export default function PredictorPage() {
                       </div>
                     </div>
 
-                    {/* Difficulty */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginBottom: "24px" }}>
+                    {/* Difficulty & Breakdown */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginBottom: "18px" }}>
                       <div style={{ padding: "12px", background: "var(--paper-sunken)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                        <div className="label" style={{ fontSize: "10px", marginBottom: "4px" }}>Difficulty</div>
+                        <div className="label" style={{ fontSize: "10px", marginBottom: "4px" }}>Difficulty Rating</div>
                         <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--accent)", textTransform: "capitalize" }}>
-                          {currentResult.difficulty_tier}
+                          {currentResult.difficulty_tier} ({currentResult.topic_type === "numerical" ? "Math / Problem Solving" : currentResult.topic_type === "lab_heavy" ? "Hands-On / Lab" : "Conceptual Theory"})
                         </div>
                       </div>
+                    </div>
+
+                    {/* Actionable Study Strategy */}
+                    <div
+                      style={{
+                        padding: "14px",
+                        background: "var(--paper-sunken)",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--border)",
+                        fontSize: "13px",
+                        lineHeight: "1.55",
+                        color: "var(--ink-secondary)",
+                        marginBottom: "24px",
+                      }}
+                    >
+                      <strong style={{ color: "var(--ink)", display: "block", marginBottom: "4px" }}>
+                        💡 Recommended Study Strategy:
+                      </strong>
+                      {currentResult.topic_type === "numerical"
+                        ? "Problem-solving focus: Spend 30% of your time understanding formulas and 70% actively solving exercises without looking at solution keys."
+                        : currentResult.topic_type === "lab_heavy"
+                        ? "Hands-on implementation: Set up your tools, compilers, or test environment beforehand so session time is spent executing tasks."
+                        : "Conceptual mastery: Use the Pomodoro technique (25 min study, 5 min break) with active recall and self-testing instead of passive re-reading."}
                     </div>
                   </div>
                 ) : (
@@ -439,10 +462,10 @@ export default function PredictorPage() {
           <Reveal dir="up">
             <div className="card" style={{ marginBottom: "64px", textAlign: "center", padding: "32px" }}>
               <p className="text-body" style={{ marginBottom: "16px" }}>
-                Curious how StudyForge estimates study time? See the model details, training data, and validation results.
+                Curious how StudyForge estimates study time? Learn how topic structure, density, and neural models calculate your hours.
               </p>
               <Link href="/how-it-works" className="btn btn-ghost btn-sm">
-                How It Works →
+                How It Works & Science →
               </Link>
             </div>
           </Reveal>

@@ -24,7 +24,7 @@ const marqueeItems = [
   "PDF & PHOTO UPLOAD",
   "PERSONAL DASHBOARD",
   "TOPIC BREAKDOWNS",
-  "NO FAKE DATA",
+  "NO GUESSWORK",
 ];
 
 export default function HomePage() {
@@ -246,7 +246,7 @@ export default function HomePage() {
                           color: "var(--ink-muted)",
                         }}
                       >
-                        Status: Unquantified. Student has no data on whether this requires 2 hours or 8 hours of focused effort.
+                        Status: Unstructured. Without StudyForge, you don't know whether this requires 2 hours or 8 hours of focused effort.
                       </div>
                     </div>
                   ) : (
@@ -545,7 +545,7 @@ export default function HomePage() {
                   icon: "📷",
                   color: "var(--amber)",
                   title: "Scan Your Syllabus",
-                  body: "Upload a PDF, snap a photo, or paste text. StudyForge extracts the topics, estimates time for each, and finds matching video lectures.",
+                  body: "Upload a PDF, document, or syllabus photo. StudyForge extracts the topics, estimates time for each, and finds matching video lectures.",
                   href: "/scanner",
                   cta: "Scan a Syllabus",
                 },

@@ -238,9 +238,13 @@ export default function ReoptimizerPage() {
                       fontFamily: "var(--font-display)",
                       fontSize: "1.8rem",
                       lineHeight: "1.2",
+                      marginBottom: "6px",
                     }}
                   >
                     {data.reopt_banner_text}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "var(--paper-sunken)", opacity: 0.9 }}>
+                    Zero study time lost: Your workload is smoothed across remaining days so you never fall behind.
                   </div>
                 </div>
 
@@ -355,6 +359,21 @@ export default function ReoptimizerPage() {
                       </Reveal>
                     );
                   })}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "16px",
+                    padding: "14px 18px",
+                    background: "var(--paper-sunken)",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border)",
+                    fontSize: "13px",
+                    color: "var(--ink-secondary)",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  <strong style={{ color: "var(--ink)" }}>💡 Why this prevents burnout:</strong> Rather than forcing you to double your study time tomorrow, StudyForge adds modest focus intervals (+20 to +40 mins) across the rest of the week, preserving your rest day buffer.
                 </div>
               </div>
 

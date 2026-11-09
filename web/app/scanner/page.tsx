@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
@@ -39,7 +40,6 @@ export default function ScannerPage() {
   const [planLoading, setPlanLoading] = useState(false);
   const [planData, setPlanData] = useState<PlanResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -200,15 +200,6 @@ export default function ScannerPage() {
                 accept={ACCEPTED_EXTENSIONS.join(",")}
                 style={{ display: "none" }}
               />
-              {/* Camera input for phone capture */}
-              <input
-                type="file"
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                capture="environment"
-                style={{ display: "none" }}
-              />
 
               <div
                 className={dragOver ? "animate-pop" : ""}
@@ -267,16 +258,6 @@ export default function ScannerPage() {
                   }}
                 >
                   Browse Files
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm press"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    cameraInputRef.current?.click();
-                  }}
-                >
-                  📷 Take Photo
                 </button>
                 <button
                   type="button"
@@ -565,12 +546,33 @@ export default function ScannerPage() {
               {planData && (
                 <Reveal dir="up">
                   <div className="card" style={{ marginBottom: "40px" }}>
-                    <div className="label" style={{ marginBottom: "8px" }}>
-                      Weekly Plan Created
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "16px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <div>
+                        <div className="label" style={{ marginBottom: "4px" }}>
+                          Weekly Plan Active
+                        </div>
+                        <h2 className="heading-md" style={{ marginBottom: 0 }}>
+                          Your Study Schedule is Ready!
+                        </h2>
+                      </div>
+                      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                        <Link href="/dashboard" className="btn btn-primary btn-sm">
+                          View on Dashboard →
+                        </Link>
+                        <Link href="/reoptimizer" className="btn btn-ghost btn-sm">
+                          Simulate Missed Day
+                        </Link>
+                      </div>
                     </div>
-                    <h2 className="heading-md" style={{ marginBottom: "20px" }}>
-                      Your Study Schedule
-                    </h2>
                     <div style={{ overflowX: "auto" }}>
                       <table className="table-refined">
                         <thead>

@@ -73,21 +73,21 @@ export function Footer() {
             </ul>
           </Reveal>
 
-          {/* Column 3: Evaluators & Architecture */}
+          {/* Column 3: How StudyForge Works */}
           <Reveal dir="up" delay={160}>
             <div className="label" style={{ marginBottom: "16px" }}>
-              For Evaluators & Teachers
+              How StudyForge Works
             </div>
             <p className="text-body" style={{ fontSize: "13.5px", marginBottom: "14px" }}>
-              Explore the machine learning architecture, validation loss benchmarks, and model export details.
+              Learn how StudyForge analyzes course structures, calculates realistic study hours, and adapts your schedule.
             </p>
             <Link
               href="/how-it-works"
               className="btn btn-ghost btn-sm"
               style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
-              <span>🔬</span>
-              <span>How It Works (ML Architecture)</span>
+              <span>✦</span>
+              <span>How It Works & Science</span>
             </Link>
           </Reveal>
 
