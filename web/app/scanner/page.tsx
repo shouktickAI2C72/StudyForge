@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -39,8 +39,96 @@ export default function ScannerPage() {
   const [dragOver, setDragOver] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
   const [planData, setPlanData] = useState<PlanResponse | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const cameraRequestRef = useRef(0);
+
+  const stopCamera = useCallback(() => {
+    cameraRequestRef.current += 1;
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    setCameraReady(false);
+    setCameraOpen(false);
+  }, []);
+
+  useEffect(() => () => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (!cameraOpen || !cameraReady || !cameraVideoRef.current || !cameraStreamRef.current) return;
+    const video = cameraVideoRef.current;
+    video.srcObject = cameraStreamRef.current;
+    void video.play().catch(() => {
+      setErrorMessage("The camera preview could not start. Check your browser's camera permission and try again.");
+    });
+  }, [cameraOpen, cameraReady]);
+
+  const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMessage("Camera capture is unavailable in this browser. Use a current browser over HTTPS, or choose Browse Files.");
+      return;
+    }
+    setCameraStarting(true);
+    setErrorMessage("");
+    setCameraOpen(true);
+    const requestId = cameraRequestRef.current + 1;
+    cameraRequestRef.current = requestId;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" } },
+      });
+      if (cameraRequestRef.current !== requestId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      cameraStreamRef.current = stream;
+      setCameraReady(true);
+    } catch (error) {
+      if (cameraRequestRef.current !== requestId) return;
+      setCameraOpen(false);
+      const name = error instanceof DOMException ? error.name : "";
+      setErrorMessage(
+        name === "NotAllowedError"
+          ? "Camera access was blocked. Allow camera access for StudyForge in your browser, then try again."
+          : name === "NotFoundError"
+            ? "No camera was found on this device. You can still upload a photo with Browse Files."
+            : "We couldn't open your camera. Check that no other app is using it, then try again."
+      );
+    } finally {
+      if (cameraRequestRef.current === requestId) setCameraStarting(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setErrorMessage("The camera is still starting. Please wait a moment and try again.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setErrorMessage("Your browser could not capture this photo. Please use Browse Files instead.");
+      return;
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setErrorMessage("Your browser could not create an image from the camera. Please try again.");
+        return;
+      }
+      stopCamera();
+      void processFile(new File([blob], `syllabus-photo-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    }, "image/jpeg", 0.92);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -56,7 +144,7 @@ export default function ScannerPage() {
     }
   };
 
-  const processFile = async (selectedFile: File) => {
+  async function processFile(selectedFile: File) {
     setFile(selectedFile);
     setLoading(true);
     setErrorMessage("");
@@ -74,7 +162,7 @@ export default function ScannerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleLoadSample = async () => {
     setLoading(true);
@@ -201,16 +289,6 @@ export default function ScannerPage() {
                 accept={ACCEPTED_EXTENSIONS.join(",")}
                 style={{ display: "none" }}
               />
-              {/* Camera input for device capture */}
-              <input
-                type="file"
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                capture="environment"
-                style={{ display: "none" }}
-              />
-
               <div
                 className={dragOver ? "animate-pop" : ""}
                 style={{
@@ -274,8 +352,9 @@ export default function ScannerPage() {
                   className="btn btn-ghost btn-sm press"
                   onClick={(e) => {
                     e.stopPropagation();
-                    cameraInputRef.current?.click();
+                    void startCamera();
                   }}
+                  disabled={cameraStarting}
                 >
                   📷 Take Photo
                 </button>
@@ -292,6 +371,45 @@ export default function ScannerPage() {
               </div>
             </div>
           </Reveal>
+
+          {cameraOpen && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Take a photo of your syllabus"
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                display: "grid",
+                placeItems: "center",
+                padding: "24px",
+                background: "rgba(20, 20, 24, 0.78)",
+              }}
+            >
+              <div className="card-brutal" style={{ width: "min(100%, 760px)", padding: "20px", background: "var(--paper-raised)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+                  <div>
+                    <p className="text-small" style={{ marginBottom: "4px", fontWeight: 800, color: "var(--accent)" }}>CAMERA CAPTURE</p>
+                    <h2 className="heading-sm">Frame your syllabus, then take the photo.</h2>
+                  </div>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={stopCamera}>Cancel</button>
+                </div>
+                <div style={{ background: "#111", borderRadius: "var(--radius-md)", overflow: "hidden", minHeight: "260px", display: "grid", placeItems: "center" }}>
+                  {cameraReady ? (
+                    <video ref={cameraVideoRef} autoPlay playsInline muted style={{ display: "block", width: "100%", maxHeight: "62vh", objectFit: "contain" }} />
+                  ) : (
+                    <p style={{ color: "white", fontWeight: 700 }}>Starting camera…</p>
+                  )}
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
+                  <button type="button" className="btn btn-primary press" onClick={capturePhoto} disabled={!cameraReady}>
+                    Capture photo
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {loading && (
             <div

@@ -216,7 +216,7 @@ export default function AuthPage() {
   };
 
   // Google credential receiver
-  const handleGoogleCredential = async (response: { credential: string }) => {
+  async function handleGoogleCredential(response: { credential: string }) {
     setSubmitting(true);
     setErrorMessage("");
     try {
@@ -229,9 +229,9 @@ export default function AuthPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
-  const onAuthSuccess = (userLabel: string) => {
+  function onAuthSuccess(userLabel: string) {
     setIsSuccess(true);
     setIsTurned(false);
     setIsHyped(false);
@@ -250,7 +250,7 @@ export default function AuthPage() {
     setTimeout(() => {
       router.push("/dashboard");
     }, 1400);
-  };
+  }
 
   const triggerError = (msg: string) => {
     setErrorMessage(msg);

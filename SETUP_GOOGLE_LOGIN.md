@@ -9,6 +9,25 @@ Google account.)
 Until you add it, the button is shown but reports "not configured" instead of
 pretending to work — email + password keeps working the whole time.
 
+## Important production fix: `Error 400: origin_mismatch`
+
+Google checks the exact browser origin before it opens its account picker. In
+Google Cloud Console, open the Web OAuth client used by StudyForge and add the
+stable production domain from **Vercel → Project → Settings → Domains** under
+**Authorized JavaScript origins**. Add it with `https://` and no path, for
+example `https://studyforge-web-git-main-TEAM.vercel.app`.
+
+Do not register a one-off Vercel deployment URL such as
+`https://studyforge-<deployment-id>-TEAM.vercel.app`: it changes on every
+deployment and Google OAuth does not allow wildcard origins. A custom domain
+is the best long-term choice.
+
+The live API also needs the same `GOOGLE_CLIENT_ID` in its host's production
+environment. A local `.env` only configures local development. For a Render
+backend, add `GOOGLE_CLIENT_ID` in the service's **Environment** section and
+redeploy it. Confirm `GET /auth/config` returns `"google_enabled": true`
+before testing Google sign-in.
+
 ## What this project needs (and doesn't)
 
 StudyForge uses **Google Identity Services (the ID-token flow)** — the browser
